@@ -1,7 +1,7 @@
 from collections import OrderedDict
 import numpy as np
 
-from stable_baselines.common.vec_env import VecEnv
+from stable_baselines.common.vec_env.base_vec_env import VecEnv
 from stable_baselines.common.vec_env.util import copy_obs_dict, dict_to_obs, obs_space_info
 
 
@@ -12,7 +12,8 @@ class DummyVecEnv(VecEnv):
     multiprocess or multithread outweighs the environment computation time. This can also be used for RL methods that
     require a vectorized environment, but that you want a single environments to train with.
 
-    :param env_fns: ([Gym Environment]) the list of environments to vectorize
+    :param env_fns: ([callable]) A list of functions that will create the environments
+        (each callable returns a `Gym.Env` instance when called).
     """
 
     def __init__(self, env_fns):

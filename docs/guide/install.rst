@@ -101,13 +101,13 @@ GPU image (requires `nvidia-docker`_):
 
 .. code-block:: bash
 
-   docker pull araffin/stable-baselines
+   docker pull stablebaselines/stable-baselines
 
 CPU only:
 
 .. code-block:: bash
 
-   docker pull araffin/stable-baselines-cpu
+   docker pull stablebaselines/stable-baselines-cpu
 
 Build the Docker Images
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -116,13 +116,13 @@ Build GPU image (with nvidia-docker):
 
 .. code-block:: bash
 
-   docker build . -f docker/Dockerfile.gpu -t stable-baselines
+   USE_GPU=True ./scripts/build_docker.sh
 
 Build CPU image:
 
 .. code-block:: bash
 
-   docker build . -f docker/Dockerfile.cpu -t stable-baselines-cpu
+   ./scripts/build_docker.sh
 
 Note: if you are using a proxy, you need to pass extra params during
 build and do some `tweaks`_:
@@ -138,7 +138,7 @@ Run the nvidia-docker GPU image
 
 .. code-block:: bash
 
-   docker run -it --runtime=nvidia --rm --network host --ipc=host --name test --mount src="$(pwd)",target=/root/code/stable-baselines,type=bind araffin/stable-baselines bash -c 'cd /root/code/stable-baselines/ && pytest tests/'
+   docker run -it --runtime=nvidia --rm --network host --ipc=host --name test --mount src="$(pwd)",target=/root/code/stable-baselines,type=bind stablebaselines/stable-baselines bash -c 'cd /root/code/stable-baselines/ && pytest tests/'
 
 Or, with the shell file:
 
@@ -150,7 +150,7 @@ Run the docker CPU image
 
 .. code-block:: bash
 
-   docker run -it --rm --network host --ipc=host --name test --mount src="$(pwd)",target=/root/code/stable-baselines,type=bind araffin/stable-baselines-cpu bash -c 'cd /root/code/stable-baselines/ && pytest tests/'
+   docker run -it --rm --network host --ipc=host --name test --mount src="$(pwd)",target=/root/code/stable-baselines,type=bind stablebaselines/stable-baselines-cpu bash -c 'cd /root/code/stable-baselines/ && pytest tests/'
 
 Or, with the shell file:
 
@@ -169,7 +169,7 @@ Explanation of the docker command:
 -  ``--ipc=host`` Use the host system’s IPC namespace. IPC (POSIX/SysV IPC) namespace provides
    separation of named shared memory segments, semaphores and message
    queues.
--  ``--name test`` give explicitely the name ``test`` to the container,
+-  ``--name test`` give explicitly the name ``test`` to the container,
    otherwise it will be assigned a random name
 -  ``--mount src=...`` give access of the local directory (``pwd``
    command) to the container (it will be map to ``/root/code/stable-baselines``), so

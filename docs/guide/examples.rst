@@ -7,6 +7,8 @@ Try it online with Colab Notebooks!
 All the following examples can be executed online using Google colab |colab|
 notebooks:
 
+-  `Full Tutorial <https://github.com/araffin/rl-tutorial-jnrr19>`_
+-  `All Notebooks <https://github.com/Stable-Baselines-Team/rl-colab-notebooks>`_
 -  `Getting Started`_
 -  `Training, Saving, Loading`_
 -  `Multiprocessing`_
@@ -16,14 +18,14 @@ notebooks:
 -  `Hindsight Experience Replay`_
 -  `RL Baselines zoo`_
 
-.. _Getting Started: https://colab.research.google.com/drive/1_1H5bjWKYBVKbbs-Kj83dsfuZieDNcFU
-.. _Training, Saving, Loading: https://colab.research.google.com/drive/16QritJF5kgT3mtnODepld1fo5tFnFCoc
-.. _Multiprocessing: https://colab.research.google.com/drive/1ZzNFMUUi923foaVsYb4YjPy4mjKtnOxb
-.. _Monitor Training and Plotting: https://colab.research.google.com/drive/1L_IMo6v0a0ALK8nefZm6PqPSy0vZIWBT
-.. _Atari Games: https://colab.research.google.com/drive/1iYK11yDzOOqnrXi1Sfjm1iekZr4cxLaN
-.. _Breakout: https://colab.research.google.com/drive/14NwwEHwN4hdNgGzzySjxQhEVDff-zr7O
-.. _Hindsight Experience Replay: https://colab.research.google.com/drive/1VDD0uLi8wjUXIqAdLKiK15XaEe0z2FOc
-.. _RL Baselines zoo: https://colab.research.google.com/drive/1cPGK3XrCqEs3QLqiijsfib9OFht3kObX
+.. _Getting Started: https://colab.research.google.com/github/Stable-Baselines-Team/rl-colab-notebooks/blob/master/stable_baselines_getting_started.ipynb
+.. _Training, Saving, Loading: https://colab.research.google.com/github/Stable-Baselines-Team/rl-colab-notebooks/blob/master/saving_loading_dqn.ipynb
+.. _Multiprocessing: https://colab.research.google.com/github/Stable-Baselines-Team/rl-colab-notebooks/blob/master/multiprocessing_rl.ipynb
+.. _Monitor Training and Plotting: https://colab.research.google.com/github/Stable-Baselines-Team/rl-colab-notebooks/blob/master/monitor_training.ipynb
+.. _Atari Games: https://colab.research.google.com/github/Stable-Baselines-Team/rl-colab-notebooks/blob/master/atari_games.ipynb
+.. _Breakout: https://colab.research.google.com/github/Stable-Baselines-Team/rl-colab-notebooks/blob/master/breakout.ipynb
+.. _Hindsight Experience Replay: https://colab.research.google.com/github/Stable-Baselines-Team/rl-colab-notebooks/blob/master/stable_baselines_her.ipynb
+.. _RL Baselines zoo: https://colab.research.google.com/github/Stable-Baselines-Team/rl-colab-notebooks/blob/master/rl-baselines-zoo.ipynb
 
 .. |colab| image:: ../_static/img/colab.svg
 
@@ -34,7 +36,7 @@ In the following example, we will train, save and load a DQN model on the Lunar 
 
 .. image:: ../_static/img/try_it.png
    :scale: 30 %
-   :target: https://colab.research.google.com/drive/16QritJF5kgT3mtnODepld1fo5tFnFCoc
+   :target: https://colab.research.google.com/github/Stable-Baselines-Team/rl-colab-notebooks/blob/master/saving_loading_dqn.ipynb
 
 
 .. figure:: https://cdn-images-1.medium.com/max/960/1*f4VZPKOI0PYNWiwt0la0Rg.gif
@@ -56,6 +58,8 @@ In the following example, we will train, save and load a DQN model on the Lunar 
   import gym
 
   from stable_baselines import DQN
+  from stable_baselines.common.evaluation import evaluate_policy
+
 
   # Create environment
   env = gym.make('LunarLander-v2')
@@ -71,6 +75,9 @@ In the following example, we will train, save and load a DQN model on the Lunar 
   # Load the trained agent
   model = DQN.load("dqn_lunar")
 
+  # Evaluate the agent
+  mean_reward, n_steps = evaluate_policy(model, model.get_env(), n_eval_episodes=10)
+
   # Enjoy trained agent
   obs = env.reset()
   for i in range(1000):
@@ -84,7 +91,7 @@ Multiprocessing: Unleashing the Power of Vectorized Environments
 
 .. image:: ../_static/img/try_it.png
    :scale: 30 %
-   :target: https://colab.research.google.com/drive/1ZzNFMUUi923foaVsYb4YjPy4mjKtnOxb
+   :target: https://colab.research.google.com/github/Stable-Baselines-Team/rl-colab-notebooks/blob/master/multiprocessing_rl.ipynb
 
 .. figure:: https://cdn-images-1.medium.com/max/960/1*h4WTQNVIsvMXJTCpXm_TAw.gif
 
@@ -98,7 +105,7 @@ Multiprocessing: Unleashing the Power of Vectorized Environments
 
   from stable_baselines.common.policies import MlpPolicy
   from stable_baselines.common.vec_env import SubprocVecEnv
-  from stable_baselines.common import set_global_seeds
+  from stable_baselines.common import set_global_seeds, make_vec_env
   from stable_baselines import ACKTR
 
   def make_env(env_id, rank, seed=0):
@@ -123,6 +130,10 @@ Multiprocessing: Unleashing the Power of Vectorized Environments
       # Create the vectorized environment
       env = SubprocVecEnv([make_env(env_id, i) for i in range(num_cpu)])
 
+      # Stable Baselines provides you with make_vec_env() helper
+      # which does exactly the previous steps for you:
+      # env = make_vec_env(env_id, n_envs=num_cpu, seed=0)
+
       model = ACKTR(MlpPolicy, env, verbose=1)
       model.learn(total_timesteps=25000)
 
@@ -144,7 +155,7 @@ If your callback returns False, training is aborted early.
 
 .. image:: ../_static/img/try_it.png
    :scale: 30 %
-   :target: https://colab.research.google.com/drive/1L_IMo6v0a0ALK8nefZm6PqPSy0vZIWBT
+   :target: https://colab.research.google.com/github/Stable-Baselines-Team/rl-colab-notebooks/blob/master/monitor_training.ipynb
 
 .. figure:: ../_static/img/learning_curve.png
 
@@ -231,7 +242,7 @@ and multiprocessing for you.
 
 .. image:: ../_static/img/try_it.png
    :scale: 30 %
-   :target: https://colab.research.google.com/drive/1iYK11yDzOOqnrXi1Sfjm1iekZr4cxLaN
+   :target: https://colab.research.google.com/github/Stable-Baselines-Team/rl-colab-notebooks/blob/master/atari_games.ipynb
 
 
 .. code-block:: python
@@ -340,8 +351,6 @@ A2C policy gradient updates on the model.
   import gym
   import numpy as np
 
-  from stable_baselines.common.policies import MlpPolicy
-  from stable_baselines.common.vec_env import DummyVecEnv
   from stable_baselines import A2C
 
   def mutate(params):
@@ -365,9 +374,8 @@ A2C policy gradient updates on the model.
 
   # Create env
   env = gym.make('CartPole-v1')
-  env = DummyVecEnv([lambda: env])
   # Create policy with a small network
-  model = A2C(MlpPolicy, env, ent_coef=0.0, learning_rate=0.1,
+  model = A2C('MlpPolicy', env, ent_coef=0.0, learning_rate=0.1,
               policy_kwargs={'net_arch': [8, ]})
 
   # Use traditional actor-critic policy gradient updates to
@@ -451,7 +459,7 @@ For this example, we are using `Highway-Env <https://github.com/eleurent/highway
 
 .. image:: ../_static/img/try_it.png
    :scale: 30 %
-   :target: https://colab.research.google.com/drive/1VDD0uLi8wjUXIqAdLKiK15XaEe0z2FOc
+   :target: https://colab.research.google.com/github/Stable-Baselines-Team/rl-colab-notebooks/blob/master/stable_baselines_her.ipynb
 
 
 .. figure:: https://raw.githubusercontent.com/eleurent/highway-env/gh-media/docs/media/parking-env.gif
@@ -546,6 +554,9 @@ You can also move from learning on one environment to another for `continual lea
       obs, rewards, dones, info = env.step(action)
       env.render()
 
+  # Close the processes
+  env.close()
+
   # The number of environments must be identical when changing environments
   env = make_atari_env('SpaceInvadersNoFrameskip-v4', num_env=8, seed=0)
 
@@ -558,6 +569,7 @@ You can also move from learning on one environment to another for `continual lea
       action, _states = model.predict(obs)
       obs, rewards, dones, info = env.step(action)
       env.render()
+  env.close()
 
 
 Record a Video
@@ -591,6 +603,7 @@ Record a mp4 video (here using a random agent).
   for _ in range(video_length + 1):
     action = [env.action_space.sample()]
     obs, _, _, _ = env.step(action)
+  # Save the video
   env.close()
 
 
@@ -606,10 +619,9 @@ Bonus: Make a GIF of a Trained Agent
   import imageio
   import numpy as np
 
-  from stable_baselines.common.policies import MlpPolicy
   from stable_baselines import A2C
 
-  model = A2C(MlpPolicy, "LunarLander-v2").learn(100000)
+  model = A2C("MlpPolicy", "LunarLander-v2").learn(100000)
 
   images = []
   obs = model.env.reset()

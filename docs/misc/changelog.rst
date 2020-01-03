@@ -6,24 +6,70 @@ Changelog
 For download links, please look at `Github release page <https://github.com/hill-a/stable-baselines/releases>`_.
 
 
-Pre-Release 2.9.0a0 (WIP)
+Pre-Release 2.10.0a0 (WIP)
 --------------------------
+
+Breaking Changes:
+^^^^^^^^^^^^^^^^^
+
+New Features:
+^^^^^^^^^^^^^
+
+Bug Fixes:
+^^^^^^^^^^
+
+Deprecations:
+^^^^^^^^^^^^^
+
+Others:
+^^^^^^^
+- Removed redundant return value from `a2c.utils::total_episode_reward_logger`. (@shwang)
+
+Documentation:
+^^^^^^^^^^^^^^
+
+
+Release 2.9.0 (2019-12-20)
+--------------------------
+
+*Reproducible results, automatic `VecEnv` wrapping, env checker and more usability improvements*
 
 Breaking Changes:
 ^^^^^^^^^^^^^^^^^
 - The `seed` argument has been moved from `learn()` method to model constructor
   in order to have reproducible results
+- `allow_early_resets` of the `Monitor` wrapper now default to `True`
+- `make_atari_env` now returns a `DummyVecEnv` by default (instead of a `SubprocVecEnv`)
+  this usually improves performance.
+- Fix inconsistency of sample type, so that mode/sample function returns tensor of tf.int64 in CategoricalProbabilityDistribution/MultiCategoricalProbabilityDistribution (@seheevic)
 
 New Features:
 ^^^^^^^^^^^^^
 - Add `n_cpu_tf_sess` to model constructor to choose the number of threads used by Tensorflow
-- `VecNormalize` now supports being pickled and unpickled.
+- Environments are automatically wrapped in a `DummyVecEnv` if needed when passing them to the model constructor
+- Added `stable_baselines.common.make_vec_env` helper to simplify VecEnv creation
+- Added `stable_baselines.common.evaluation.evaluate_policy` helper to simplify model evaluation
+- `VecNormalize` changes:
+
+   - Now supports being pickled and unpickled (@AdamGleave).
+   - New methods `.normalize_obs(obs)` and `normalize_reward(rews)` apply normalization
+     to arbitrary observation or rewards without updating statistics (@shwang)
+   - `.get_original_reward()` returns the unnormalized rewards from the most recent timestep
+   - `.reset()` now collects observation statistics (used to only apply normalization)
+
+- Add parameter `exploration_initial_eps` to DQN. (@jdossgollin)
+- Add type checking and PEP 561 compliance.
+  Note: most functions are still not annotated, this will be a gradual process.
+- DDPG, TD3 and SAC accept non-symmetric action spaces. (@Antymon)
+- Add `check_env` util to check if a custom environment follows the gym interface (@araffin and @justinkterry)
 
 Bug Fixes:
 ^^^^^^^^^^
 - Fix seeding, so it is now possible to have deterministic results on cpu
 - Fix a bug in DDPG where `predict` method with `deterministic=False` would fail
 - Fix a bug in TRPO: mean_losses was not initialized causing the logger to crash when there was no gradients (@MarvineGothic)
+- Fix a bug in `cmd_util` from API change in recent Gym versions
+- Fix a bug in DDPG, TD3 and SAC where warmup and random exploration actions would end up scaled in the replay buffer (@Antymon)
 
 Deprecations:
 ^^^^^^^^^^^^^
@@ -34,7 +80,13 @@ Deprecations:
 Others:
 ^^^^^^^
 - Add upper bound for Tensorflow version (<2.0.0).
+- Refactored test to remove duplicated code
 - Add pull request template
+- Replaced redundant code in load_results (@jbulow)
+- Minor PEP8 fixes in dqn.py (@justinkterry)
+- Add a message to the assert in `PPO2`
+- Update replay buffer doctring
+- Fix `VecEnv` docstrings
 
 Documentation:
 ^^^^^^^^^^^^^^
@@ -42,9 +94,24 @@ Documentation:
 - Add Snake Game AI project (@pedrohbtp)
 - Add note on the support Tensorflow versions.
 - Remove unnecessary steps required for Windows installation.
+- Remove `DummyVecEnv` creation when not needed
+- Added `make_vec_env` to the examples to simplify VecEnv creation
 - Add QuaRL project (@srivatsankrishnan)
 - Add Pwnagotchi project (@evilsocket)
+- Fix multiprocessing example (@rusu24edward)
 - Fix `result_plotter` example
+- Add JNRR19 tutorial (by @edbeeching, @hill-a and @araffin)
+- Updated notebooks link
+- Fix typo in algos.rst, "containes" to "contains" (@SyllogismRXS)
+- Fix outdated source documentation for load_results
+- Add PPO_CPP project (@Antymon)
+- Add section on C++ portability of Tensorflow models (@Antymon)
+- Update custom env documentation to reflect new gym API for the `close()` method (@justinkterry)
+- Update custom env documentation to clarify what step and reset return (@justinkterry)
+- Add RL tips and tricks for doing RL experiments
+- Corrected lots of typos
+- Add spell check to documentation if available
+
 
 Release 2.8.0 (2019-09-29)
 --------------------------
@@ -359,7 +426,7 @@ Release 2.1.1 (2018-10-20)
 --------------------------
 
 - fixed MpiAdam synchronization issue in PPO1 (thanks to @brendenpetersen) issue #50
-- fixed dependency issues (new mujoco-py requires a mujoco licence + gym broke MultiDiscrete space shape)
+- fixed dependency issues (new mujoco-py requires a mujoco license + gym broke MultiDiscrete space shape)
 
 
 Release 2.1.0 (2018-10-2)
@@ -525,4 +592,4 @@ Thanks to @bjmuld @iambenzo @iandanforth @r7vme @brendenpetersen @huvar @abhiskk
 @EliasHasle @mrakgr @Bleyddyn @antoine-galataud @junhyeokahn @AdamGleave @keshaviyengar @tperol
 @XMaster96 @kantneel @Pastafarianist @GerardMaggiolino @PatrickWalter214 @yutingsz @sc420 @Aaahh @billtubbs
 @Miffyli @dwiel @miguelrass @qxcv @jaberkow @eavelardev @ruifeng96150 @pedrohbtp @srivatsankrishnan @evilsocket
-@MarvineGothic
+@MarvineGothic @jdossgollin @SyllogismRXS @rusu24edward @jbulow @Antymon @seheevic @justinkterry @edbeeching

@@ -6,14 +6,14 @@ import warnings
 import numpy as np
 import tensorflow as tf
 
+from stable_baselines import logger
 from stable_baselines.common import tf_util, OffPolicyRLModel, SetVerbosity, TensorboardWriter
 from stable_baselines.common.vec_env import VecEnv
 from stable_baselines.common.tf_util import total_episode_reward_logger
-from stable_baselines.common.math_util import safe_mean
+from stable_baselines.common.math_util import safe_mean, unscale_action, scale_action
 from stable_baselines.common.schedules import get_schedule_fn
 from stable_baselines.common.replay_buffer import ReplayBuffer
 from stable_baselines.td3.policies import TD3Policy
-from stable_baselines import logger
 
 
 class TD3(OffPolicyRLModel):
@@ -37,7 +37,7 @@ class TD3(OffPolicyRLModel):
     :param policy_delay: (int) Policy and target networks will only be updated once every policy_delay steps
         per training steps. The Q values will be updated policy_delay more often (update every training step).
     :param action_noise: (ActionNoise) the action noise type. Cf DDPG for the different action noise type.
-    :param target_policy_noise: (float) Standard deviation of gaussian noise added to target policy
+    :param target_policy_noise: (float) Standard deviation of Gaussian noise added to target policy
         (smoothing noise)
     :param target_noise_clip: (float) Limit for absolute value of target policy smoothing noise.
     :param train_freq: (int) Update the model every `train_freq` steps.
@@ -120,7 +120,7 @@ class TD3(OffPolicyRLModel):
     def _get_pretrain_placeholders(self):
         policy = self.policy_tf
         # Rescale
-        policy_out = self.policy_out * np.abs(self.action_space.low)
+        policy_out = unscale_action(self.action_space, self.policy_out)
         return policy.obs_ph, self.actions_ph, policy_out
 
     def setup_model(self):
@@ -316,10 +316,11 @@ class TD3(OffPolicyRLModel):
                 # from a uniform distribution for better exploration.
                 # Afterwards, use the learned policy
                 # if random_exploration is set to 0 (normal setting)
-                if (self.num_timesteps < self.learning_starts
-                        or np.random.rand() < self.random_exploration):
-                    # No need to rescale when sampling random action
-                    rescaled_action = action = self.env.action_space.sample()
+                if self.num_timesteps < self.learning_starts or np.random.rand() < self.random_exploration:
+                    # actions sampled from action space are from range specific to the environment
+                    # but algorithm operates on tanh-squashed actions therefore simple scaling is used
+                    unscaled_action = self.env.action_space.sample()
+                    action = scale_action(self.action_space, unscaled_action)
                 else:
                     action = self.policy_tf.step(obs[None]).flatten()
                     # Add noise to the action, as the policy
@@ -327,11 +328,11 @@ class TD3(OffPolicyRLModel):
                     if self.action_noise is not None:
                         action = np.clip(action + self.action_noise(), -1, 1)
                     # Rescale from [-1, 1] to the correct bounds
-                    rescaled_action = action * np.abs(self.action_space.low)
+                    unscaled_action = unscale_action(self.action_space, action)
 
                 assert action.shape == self.env.action_space.shape
 
-                new_obs, reward, done, info = self.env.step(rescaled_action)
+                new_obs, reward, done, info = self.env.step(unscaled_action)
 
                 # Store transition in the replay buffer.
                 self.replay_buffer.add(obs, action, reward, new_obs, float(done))
@@ -346,8 +347,8 @@ class TD3(OffPolicyRLModel):
                     # Write reward per episode to tensorboard
                     ep_reward = np.array([reward]).reshape((1, -1))
                     ep_done = np.array([done]).reshape((1, -1))
-                    self.episode_reward = total_episode_reward_logger(self.episode_reward, ep_reward,
-                                                                      ep_done, writer, self.num_timesteps)
+                    tf_util.total_episode_reward_logger(self.episode_reward, ep_reward,
+                                                        ep_done, writer, self.num_timesteps)
 
                 if step % self.train_freq == 0:
                     mb_infos_vals = []
@@ -435,7 +436,7 @@ class TD3(OffPolicyRLModel):
             actions = np.clip(actions + self.action_noise(), -1, 1)
 
         actions = actions.reshape((-1,) + self.action_space.shape)  # reshape to the correct action shape
-        actions = actions * np.abs(self.action_space.low)  # scale the output for the prediction
+        actions = unscale_action(self.action_space, actions)  # scale the output for the prediction
 
         if not vectorized_env:
             actions = actions[0]

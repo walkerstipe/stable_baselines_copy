@@ -11,10 +11,8 @@ import numpy as np
 import gym
 import tensorflow as tf
 
-from stable_baselines.common import set_global_seeds
-from stable_baselines.common.save_util import (
-    is_json_serializable, data_to_json, json_to_data, params_to_bytes, bytes_to_params
-)
+from stable_baselines.common.misc_util import set_global_seeds
+from stable_baselines.common.save_util import data_to_json, json_to_data, params_to_bytes, bytes_to_params
 from stable_baselines.common.policies import get_policy_from_name, ActorCriticPolicy
 from stable_baselines.common.vec_env import VecEnvWrapper, VecEnv, DummyVecEnv
 from stable_baselines import logger
@@ -72,7 +70,12 @@ class BaseRLModel(ABC):
                 if isinstance(env, VecEnv):
                     self.n_envs = env.num_envs
                 else:
-                    raise ValueError("Error: the model requires a vectorized environment, please use a VecEnv wrapper.")
+                    # The model requires a VecEnv
+                    # wrap it in a DummyVecEnv to avoid error
+                    self.env = DummyVecEnv([lambda: env])
+                    if self.verbose >= 1:
+                        print("Wrapping the env in a DummyVecEnv.")
+                    self.n_envs = 1
             else:
                 if isinstance(env, VecEnv):
                     if env.num_envs == 1:
@@ -235,9 +238,9 @@ class BaseRLModel(ABC):
         """
         Return the placeholders needed for the pretraining:
         - obs_ph: observation placeholder
-        - actions_ph will be population with an action from the environement
+        - actions_ph will be population with an action from the environment
             (from the expert dataset)
-        - deterministic_actions_ph: e.g., in the case of a gaussian policy,
+        - deterministic_actions_ph: e.g., in the case of a Gaussian policy,
             the mean.
 
         :return: ((tf.placeholder)) (obs_ph, actions_ph, deterministic_actions_ph)
@@ -413,7 +416,6 @@ class BaseRLModel(ABC):
         if self._param_load_ops is None:
             self._setup_load_operations()
 
-        params = None
         if isinstance(load_path_or_dict, dict):
             # Assume `load_path_or_dict` is dict of variable.name -> ndarrays we want to load
             params = load_path_or_dict
@@ -434,6 +436,7 @@ class BaseRLModel(ABC):
             # We only need the parameters part of the file, so
             # only load that part.
             _, params = BaseRLModel._load_from_file(load_path_or_dict, load_data=False)
+            params = dict(params)
 
         feed_dict = {}
         param_update_ops = []
@@ -471,7 +474,7 @@ class BaseRLModel(ABC):
         Load the model from file
 
         :param load_path: (str or file-like) the saved parameter location
-        :param env: (Gym Envrionment) the new environment to run the loaded model on
+        :param env: (Gym Environment) the new environment to run the loaded model on
             (can be None if you only need prediction from a trained model)
         :param custom_objects: (dict) Dictionary of objects to replace
             upon loading. If a variable is present in this dictionary as a
@@ -859,7 +862,7 @@ class ActorCriticRLModel(BaseRLModel):
         Load the model from file
 
         :param load_path: (str or file-like) the saved parameter location
-        :param env: (Gym Envrionment) the new environment to run the loaded model on
+        :param env: (Gym Environment) the new environment to run the loaded model on
             (can be None if you only need prediction from a trained model)
         :param custom_objects: (dict) Dictionary of objects to replace
             upon loading. If a variable is present in this dictionary as a
@@ -942,7 +945,7 @@ class OffPolicyRLModel(BaseRLModel):
         Load the model from file
 
         :param load_path: (str or file-like) the saved parameter location
-        :param env: (Gym Envrionment) the new environment to run the loaded model on
+        :param env: (Gym Environment) the new environment to run the loaded model on
             (can be None if you only need prediction from a trained model)
         :param custom_objects: (dict) Dictionary of objects to replace
             upon loading. If a variable is present in this dictionary as a
