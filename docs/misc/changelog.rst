@@ -15,8 +15,8 @@ Breaking Changes:
 New Features:
 ^^^^^^^^^^^^^
 - Parallelized updating and sampling from the replay buffer in DQN. (@flodorner)
-
 - Docker build script, `scripts/build_docker.sh`, can push images automatically.
+- Added callback collection
 
 Bug Fixes:
 ^^^^^^^^^^
@@ -32,6 +32,7 @@ Others:
 
 Documentation:
 ^^^^^^^^^^^^^^
+- Add dedicated page for callbacks
 
 
 Release 2.9.0 (2019-12-20)

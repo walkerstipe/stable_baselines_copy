@@ -1,14 +1,14 @@
-from abc import ABC, abstractmethod
 import os
 import glob
-import warnings
-from collections import OrderedDict
 import json
 import zipfile
+import warnings
+from abc import ABC, abstractmethod
+from collections import OrderedDict
 
+import gym
 import cloudpickle
 import numpy as np
-import gym
 import tensorflow as tf
 
 from stable_baselines.common.misc_util import set_global_seeds
@@ -159,6 +159,27 @@ class BaseRLModel(ABC):
         Create all the functions and tensorflow graphs necessary to train the model
         """
         pass
+
+    def _init_callback(self, callback):
+        """
+        Note: we cannot use type hint here because of circular import.
+        :param callback: (Union[callable, [callable], BaseCallback], None)
+        :return: (BaseCallback)
+        """
+        # Avoid circular import
+        from stable_baselines.common.callbacks import BaseCallback, CallbackList, LambdaCallback
+        if callback is None:
+            # Dummy callback
+            callback = lambda _locals, _globals: True
+        # Convert a list of callbacks into a callback
+        if isinstance(callback, list):
+            callback = CallbackList(callback)
+        # Convert to object
+        if not isinstance(callback, BaseCallback):
+            callback = LambdaCallback(on_step=callback)
+
+        callback.init_callback(self)
+        return callback
 
     def set_random_seed(self, seed):
         """
@@ -342,8 +363,12 @@ class BaseRLModel(ABC):
         Return a trained model.
 
         :param total_timesteps: (int) The total number of samples to train on
-        :param callback: (function (dict, dict)) -> boolean function called at every steps with state of the algorithm.
+        :param callback: (Union[callable, [callable], BaseCallback])
+            function called at every steps with state of the algorithm.
             It takes the local and global variables. If it returns False, training is aborted.
+            When the callback inherits from BaseCallback, you will have access
+            to additional stages of the training (training start/end),
+            please read the documentation for more details.
         :param log_interval: (int) The number of timesteps before logging.
         :param tb_log_name: (str) the name of the run for tensorboard log
         :param reset_num_timesteps: (bool) whether or not to reset the current timestep number (used in logging)

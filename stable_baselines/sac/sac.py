@@ -370,6 +370,7 @@ class SAC(OffPolicyRLModel):
               log_interval=4, tb_log_name="SAC", reset_num_timesteps=True, replay_wrapper=None):
 
         new_tb_log = self._init_num_timesteps(reset_num_timesteps)
+        callback = self._init_callback(callback)
 
         if replay_wrapper is not None:
             self.replay_buffer = replay_wrapper(self.replay_buffer)
@@ -395,12 +396,13 @@ class SAC(OffPolicyRLModel):
             n_updates = 0
             infos_values = []
 
+            callback.on_training_start(locals(), globals())
+
             for step in range(total_timesteps):
-                if callback is not None:
-                    # Only stop training if return value is False, not when it is None. This is for backwards
-                    # compatibility with callbacks that have no return statement.
-                    if callback(locals(), globals()) is False:
-                        break
+                # Only stop training if return value is False, not when it is None. This is for backwards
+                # compatibility with callbacks that have no return statement.
+                if callback(locals(), globals()) is False:
+                    break
 
                 # Before training starts, randomly sample actions
                 # from a uniform distribution for better exploration.
@@ -503,6 +505,9 @@ class SAC(OffPolicyRLModel):
                     logger.dumpkvs()
                     # Reset infos:
                     infos_values = []
+            # TODO: should we also call that one if the callback
+            # stop the training before?
+            callback.on_training_end(locals(), globals())
             return self
 
     def action_probability(self, observation, state=None, mask=None, actions=None, logp=False):

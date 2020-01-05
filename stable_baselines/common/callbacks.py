@@ -1,9 +1,11 @@
+import os
 from abc import ABC, abstractmethod
 from typing import Union, List
 
 import gym
 import numpy as np
 
+from stable_baselines.common.base_class import BaseRLModel
 from stable_baselines.common.vec_env import VecEnv
 from stable_baselines.common.evaluation import evaluate_policy
 
@@ -22,7 +24,11 @@ class BaseCallback(ABC):
         self.num_timesteps = 0
         self.verbose = verbose
 
-    def init_callback(self, model: Union[gym.Env, VecEnv]) -> None:
+    def init_callback(self, model: BaseRLModel) -> None:
+        """
+        Initialize the callback by saving references to the
+        RL model and the training environment for convenience.
+        """
         self.model = model
         self.training_env = model.get_env()
 
@@ -53,7 +59,6 @@ class BaseCallback(ABC):
 
         return self.on_step(locals_, globals_)
 
-    @abstractmethod
     def on_training_end(self, locals_: dict, globals_: dict) -> None:
         pass
 
@@ -65,22 +70,72 @@ class CallbackList(BaseCallback):
         self.callbacks = callbacks
 
     def init_callback(self, model):
+        super(CallbackList, self).init_callback(model)
         for callback in self.callbacks:
             callback.init_callback(model)
 
-    def on_training_start(self, model):
+    def on_training_start(self, locals_: dict, globals_: dict) -> None:
         for callback in self.callbacks:
-            callback.on_training_start(model)
+            callback.on_training_start(locals_, globals_)
 
-    def on_step(self, locals_, globals):
+    def on_step(self, locals_, globals_):
         continue_training = True
         for callback in self.callbacks:
+            # Update variables
+            callback.num_timesteps = self.num_timesteps
+            callback.n_calls = self.n_calls
+            # Return False (stop training) if at least one callback returns False
             continue_training = callback.on_step(locals_, globals_) and continue_training
         return continue_training
 
-    def on_training_end(self, model):
+    def on_training_end(self, locals_: dict, globals_: dict) -> None:
         for callback in self.callbacks:
-            callback.on_training_end(model)
+            callback.on_training_end(locals_, globals_)
+
+
+class CheckpointCallback(BaseCallback):
+    """
+    Callback for saving a model every `save_freq` steps
+
+    :param save_freq: (int)
+    :param save_path: (str) Path to the folder where the model will be saved.
+    :param name_prefix: (str) Common prefix to the saved models
+    """
+    def __init__(self, save_freq: int, save_path: str, name_prefix='rl_model', verbose=0):
+        super(CheckpointCallback, self).__init__(verbose)
+        self.save_freq = save_freq
+        self.save_path = save_path
+        self.name_prefix = name_prefix
+
+    def init_callback(self, model: BaseRLModel) -> None:
+        super(CheckpointCallback, self).init_callback(model)
+        # Create folder if needed
+        os.makedirs(self.save_path, exist_ok=True)
+
+    def on_step(self, locals_: dict, globals_: dict) -> bool:
+        if self.n_calls % self.save_freq == 0:
+            path = os.path.join(self.save_path, '{}_{}_steps'.format(self.name_prefix, self.num_timesteps))
+            self.model.save(path)
+            if self.verbose > 1:
+                print("Saving model checkpoint to {}".format(path))
+        return True
+
+
+class LambdaCallback(BaseCallback):
+    """
+    :param on_training_start: (callable)
+    :param on_step: (callable)
+    :param on_training_end: (callable)
+    :param verbose: (int)
+    """
+    def __init__(self, on_training_start=None, on_step=None, on_training_end=None, verbose=0):
+        super(CheckpointCallback, self).__init__(verbose)
+        if on_training_start is not None:
+            self.on_training_start = on_training_start
+        if on_step is not None:
+            self.on_step = on_step
+        if on_training_end is not None:
+            self.on_training_end = on_training_end
 
 
 class EvalCallback(BaseCallback):
