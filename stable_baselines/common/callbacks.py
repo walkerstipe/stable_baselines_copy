@@ -5,7 +5,7 @@ from typing import Union, List
 import gym
 import numpy as np
 
-from stable_baselines.common.base_class import BaseRLModel
+from stable_baselines.common.base_class import BaseRLModel # pytype: disable=pyi-error
 from stable_baselines.common.vec_env import VecEnv
 from stable_baselines.common.evaluation import evaluate_policy
 
@@ -129,13 +129,18 @@ class LambdaCallback(BaseCallback):
     :param verbose: (int)
     """
     def __init__(self, on_training_start=None, on_step=None, on_training_end=None, verbose=0):
-        super(CheckpointCallback, self).__init__(verbose)
+        super(LambdaCallback, self).__init__(verbose)
         if on_training_start is not None:
             self.on_training_start = on_training_start
         if on_step is not None:
-            self.on_step = on_step
+            self._on_step = on_step
+        else:
+            self._on_step = lambda _locals, _globals: True
         if on_training_end is not None:
             self.on_training_end = on_training_end
+
+    def on_step(self, locals_: dict, globals_: dict) -> bool:
+        return self._on_step(locals_, globals_)
 
 
 class EvalCallback(BaseCallback):

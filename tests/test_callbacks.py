@@ -1,5 +1,3 @@
-from copy import deepcopy
-
 import pytest
 
 from stable_baselines import SAC
@@ -15,3 +13,5 @@ def test_callbacks(model_class):
     eval_callback = EvalCallback(eval_env, eval_freq=100)
     callback = CallbackList([checkpoint_callback, eval_callback])
     model.learn(1000, callback=callback)
+    model.learn(500, callback=None)
+    model.learn(500, callback=lambda _locals, _globals : True)
