@@ -60,7 +60,7 @@ class BaseCallback(ABC):
 
 class CallbackList(BaseCallback):
     def __init__(self, callbacks: List[BaseCallback]):
-        super(BaseCallback, self).__init__()
+        super(CallbackList, self).__init__()
         assert isinstance(callbacks, list)
         self.callbacks = callbacks
 
@@ -94,14 +94,15 @@ class EvalCallback(BaseCallback):
     """
     def __init__(self, eval_env: Union[gym.Env, VecEnv],
                  n_eval_episodes=5, best_model_save_path=None,
-                 eval_freq=20, deterministic=True, verbose=1):
-        super(BaseCallback, self).__init__(verbose=verbose)
+                 eval_freq=10000, deterministic=True, verbose=1):
+        super(EvalCallback, self).__init__(verbose=verbose)
         self.n_eval_episodes = n_eval_episodes
         self.eval_freq = eval_freq
         self.best_mean_reward = -np.inf
         self.deterministic = deterministic
         # TODO: check the env (num_envs == 1 and type(training_env) == type(eval_env))
         self.eval_env = eval_env
+        self.best_model_save_path = best_model_save_path
 
     def on_step(self, locals_: dict, globals_: dict) -> bool:
         """
@@ -112,8 +113,8 @@ class EvalCallback(BaseCallback):
 
         if self.n_calls % self.eval_freq == 0:
             # TODO: sync training and eval env if there is VecNormalize
-            episode_rewards = evaluate_policy(self.model, self.eval_env, n_eval_episodes=self.n_eval_episodes,
-                                              deterministic=self.deterministic, return_episode_rewards=True)
+            episode_rewards, _ = evaluate_policy(self.model, self.eval_env, n_eval_episodes=self.n_eval_episodes,
+                                                 deterministic=self.deterministic, return_episode_rewards=True)
 
 
             mean_reward, std_reward = np.mean(episode_rewards), np.std(episode_rewards)
