@@ -18,26 +18,26 @@ Thanks to the access to the models variables, in particular `_locals["self"]`, w
 
 .. code-block:: python
 
-	from stable_baselines import PPO2
+    from stable_baselines import PPO2
 
-	def simple_callback(_locals, _globals):
-		"""
-		Callback called at each step (for DQN an others) or after n steps (see ACER or PPO2).
-		This callback will save the model and stop the training after the first call.
+    def simple_callback(_locals, _globals):
+        """
+        Callback called at each step (for DQN an others) or after n steps (see ACER or PPO2).
+        This callback will save the model and stop the training after the first call.
 
-		:param _locals: (dict)
-		:param _globals: (dict)
-		"""
-		print("callback called")
-		# Save the model
-		_locals["self"].save("saved_model")
-		# If you want to continue training, the callback must return True.
-		# return True # returns True, training continues.
-		print("stop training")
-		return False # returns False, training stops.
+        :param _locals: (dict)
+        :param _globals: (dict)
+        """
+        print("callback called")
+        # Save the model
+        _locals["self"].save("saved_model")
+        # If you want to continue training, the callback must return True.
+        # return True # returns True, training continues.
+        print("stop training")
+        return False # returns False, training stops.
 
-		model = PPO2('MlpPolicy', 'CartPole-v1')
-		model.learn(2000, callback=simple_callback)
+        model = PPO2('MlpPolicy', 'CartPole-v1')
+        model.learn(2000, callback=simple_callback)
 
 
 Object oriented approach
@@ -45,38 +45,38 @@ Object oriented approach
 
 .. code-block:: python
 
-	from stable_baselines.common.callbacks import BaseCallback
+    from stable_baselines.common.callbacks import BaseCallback
 
-	class CustomCallback(BaseCallback):
-		"""
-		Base class for callback.
+    class CustomCallback(BaseCallback):
+        """
+        Base class for callback.
 
-		:param verbose: (int)
-		"""
-		def __init__(self, verbose=0):
-			super(CustomCallback, self).__init__(verbose)
-			# Those variables will be accessible in the callback
-			# (they are defined in the base class)
-			# self.model = None
-			# self.training_env = None
-			# self.n_calls = 0
-			# self.num_timesteps = 0
+        :param verbose: (int)
+        """
+        def __init__(self, verbose=0):
+            super(CustomCallback, self).__init__(verbose)
+            # Those variables will be accessible in the callback
+            # (they are defined in the base class)
+            # self.model = None
+            # self.training_env = None
+            # self.n_calls = 0
+            # self.num_timesteps = 0
 
-		def on_training_start(self, locals_: dict, globals_: dict) -> None:
-			pass
+        def on_training_start(self, locals_: dict, globals_: dict) -> None:
+            pass
 
-		def on_step(self, locals_: dict, globals_: dict) -> bool:
-			""" This method will be called by the model.
-			This is the equivalent to the callback function.
+        def on_step(self, locals_: dict, globals_: dict) -> bool:
+            """ This method will be called by the model.
+            This is the equivalent to the callback function.
 
-			:param locals_: (dict)
-			:param globals_: (dict)
-			:return: (bool)
-			"""
-			return True
+            :param locals_: (dict)
+            :param globals_: (dict)
+            :return: (bool)
+            """
+            return True
 
-		def on_training_end(self, locals_: dict, globals_: dict) -> None:
-			pass
+        def on_training_end(self, locals_: dict, globals_: dict) -> None:
+            pass
 
 
 Callback Collection
@@ -89,13 +89,13 @@ CheckpointCallback
 
 .. code-block:: python
 
-	from stable_baselines import SAC
-	from stable_baselines.common.callbacks import CheckpointCallback
+    from stable_baselines import SAC
+    from stable_baselines.common.callbacks import CheckpointCallback
 
-	checkpoint_callback = CheckpointCallback(save_freq=1000, save_path='./logs/')
+    checkpoint_callback = CheckpointCallback(save_freq=1000, save_path='./logs/')
 
-	model = SAC('MlpPolicy', 'Pendulum-v0')
-	model.learn(2000, callback=checkpoint_callback)
+    model = SAC('MlpPolicy', 'Pendulum-v0')
+    model.learn(2000, callback=checkpoint_callback)
 
 
 EvalCallback
@@ -105,18 +105,18 @@ For proper evaluation, using a separate test environment.
 
 .. code-block:: python
 
-	import gym
+    import gym
 
-	from stable_baselines import SAC
-	from stable_baselines.common.callbacks import EvalCallback
+    from stable_baselines import SAC
+    from stable_baselines.common.callbacks import EvalCallback
 
-	# Separate evaluation env
-	eval_env = gym.make('Pendulum-v0')
-	eval_callback = EvalCallback(eval_env, best_model_save_path='./logs/best_model',
-															 log_path='./logs/results', eval_freq=500)
+    # Separate evaluation env
+    eval_env = gym.make('Pendulum-v0')
+    eval_callback = EvalCallback(eval_env, best_model_save_path='./logs/best_model',
+                                 log_path='./logs/results', eval_freq=500)
 
-	model = SAC('MlpPolicy', 'Pendulum-v0')
-	model.learn(5000, callback=eval_callback)
+    model = SAC('MlpPolicy', 'Pendulum-v0')
+    model.learn(5000, callback=eval_callback)
 
 
 CallbackList
@@ -126,23 +126,23 @@ For chaining callbacks.
 
 .. code-block:: python
 
-	import gym
+    import gym
 
-	from stable_baselines import SAC
-	from stable_baselines.common.callbacks import CallbackList, CheckpointCallback, EvalCallback
+    from stable_baselines import SAC
+    from stable_baselines.common.callbacks import CallbackList, CheckpointCallback, EvalCallback
 
-	checkpoint_callback = CheckpointCallback(save_freq=1000, save_path='./logs/')
-	# Separate evaluation env
-	eval_env = gym.make('Pendulum-v0')
-	eval_callback = EvalCallback(eval_env, best_model_save_path='./logs/best_model',
-															 log_path='./logs/results', eval_freq=500)
-	# Create the callback list
-	callback = CallbackList([checkpoint_callback, eval_callback])
+    checkpoint_callback = CheckpointCallback(save_freq=1000, save_path='./logs/')
+    # Separate evaluation env
+    eval_env = gym.make('Pendulum-v0')
+    eval_callback = EvalCallback(eval_env, best_model_save_path='./logs/best_model',
+                                 log_path='./logs/results', eval_freq=500)
+    # Create the callback list
+    callback = CallbackList([checkpoint_callback, eval_callback])
 
-	model = SAC('MlpPolicy', 'Pendulum-v0')
-	# Equivalent to:
-	# model.learn(5000, callback=[checkpoint_callback, eval_callback])
-	model.learn(5000, callback=callback)
+    model = SAC('MlpPolicy', 'Pendulum-v0')
+    # Equivalent to:
+    # model.learn(5000, callback=[checkpoint_callback, eval_callback])
+    model.learn(5000, callback=callback)
 
 
 LambdaCallback
@@ -150,18 +150,18 @@ LambdaCallback
 
 .. code-block:: python
 
-	import gym
+    import gym
 
-	from stable_baselines import SAC
-	from stable_baselines.common.callbacks import LambdaCallback
+    from stable_baselines import SAC
+    from stable_baselines.common.callbacks import LambdaCallback
 
-	# Dummy callback
-	callback = LambdaCallback(on_training_start=None,
-													  on_step=lambda _locals, _globals : True,
-														on_training_end=None)
+    # Dummy callback
+    callback = LambdaCallback(on_training_start=None,
+                              on_step=lambda _locals, _globals : True,
+                              on_training_end=None)
 
-	model = SAC('MlpPolicy', 'Pendulum-v0')
-	model.learn(5000, callback=callback)
+    model = SAC('MlpPolicy', 'Pendulum-v0')
+    model.learn(5000, callback=callback)
 
 
 .. automodule:: stable_baselines.common.callbacks

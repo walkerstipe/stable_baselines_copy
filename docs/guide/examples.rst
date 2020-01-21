@@ -470,7 +470,7 @@ The parking env is a goal-conditioned continuous control task, in which the vehi
 
 .. note::
 
-	the hyperparameters in the following example were optimized for that environment.
+  the hyperparameters in the following example were optimized for that environment.
 
 
 .. code-block:: python
@@ -519,14 +519,14 @@ The parking env is a goal-conditioned continuous control task, in which the vehi
   # Evaluate the agent
   episode_reward = 0
   for _ in range(100):
-  	action, _ = model.predict(obs)
-  	obs, reward, done, info = env.step(action)
-  	env.render()
-  	episode_reward += reward
-  	if done or info.get('is_success', False):
-  		print("Reward:", episode_reward, "Success?", info.get('is_success', False))
-  		episode_reward = 0.0
-  		obs = env.reset()
+    action, _ = model.predict(obs)
+    obs, reward, done, info = env.step(action)
+    env.render()
+    episode_reward += reward
+    if done or info.get('is_success', False):
+      print("Reward:", episode_reward, "Success?", info.get('is_success', False))
+      episode_reward = 0.0
+      obs = env.reset()
 
 
 
