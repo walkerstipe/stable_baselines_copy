@@ -10,7 +10,8 @@ def test_callbacks(model_class):
     checkpoint_callback = CheckpointCallback(save_freq=1000, save_path='./logs/')
     # For testing: use the same training env
     eval_env = model.get_env()
-    eval_callback = EvalCallback(eval_env, eval_freq=100)
+    eval_callback = EvalCallback(eval_env, best_model_save_path='./logs/best_model',
+                                 log_path='./logs/results', eval_freq=100)
     callback = CallbackList([checkpoint_callback, eval_callback])
     model.learn(1000, callback=callback)
     model.learn(500, callback=None)

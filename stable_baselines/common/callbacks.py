@@ -6,7 +6,7 @@ import gym
 import numpy as np
 
 from stable_baselines.common.base_class import BaseRLModel # pytype: disable=pyi-error
-from stable_baselines.common.vec_env import VecEnv
+from stable_baselines.common.vec_env import VecEnv, sync_envs_normalization
 from stable_baselines.common.evaluation import evaluate_policy
 
 
@@ -35,6 +35,10 @@ class BaseCallback(ABC):
     def on_training_start(self, locals_: dict, globals_: dict) -> None:
         pass
 
+    # Should we include that?
+    # def on_rollout_start(self, locals_: dict, globals_: dict) -> None:
+    #     pass
+
     @abstractmethod
     def on_step(self, locals_: dict, globals_: dict) -> bool:
         """
@@ -55,12 +59,17 @@ class BaseCallback(ABC):
         :return: (bool)
         """
         self.n_calls += 1
-        self.num_timesteps = self.model.num_timesteps
+        # timesteps start at zero
+        self.num_timesteps = self.model.num_timesteps + 1
 
         return self.on_step(locals_, globals_)
 
     def on_training_end(self, locals_: dict, globals_: dict) -> None:
         pass
+
+    # Should we include that?
+    # def on_rollout_end(self, locals_: dict, globals_: dict) -> None:
+    #     pass
 
 
 class CallbackList(BaseCallback):
@@ -110,7 +119,8 @@ class CheckpointCallback(BaseCallback):
     def init_callback(self, model: BaseRLModel) -> None:
         super(CheckpointCallback, self).init_callback(model)
         # Create folder if needed
-        os.makedirs(self.save_path, exist_ok=True)
+        if self.save_path is not None:
+            os.makedirs(self.save_path, exist_ok=True)
 
     def on_step(self, locals_: dict, globals_: dict) -> bool:
         if self.n_calls % self.save_freq == 0:
@@ -147,35 +157,58 @@ class EvalCallback(BaseCallback):
     """
     Callback for evaluating an agent.
 
-    :param eval_env: (gym.Env) The environment used for initialization
+    :param eval_env: (Union[gym.Env, VecEnv]) The environment used for initialization
     :param n_eval_episodes: (int) The number of episodes to test the agent
     :param eval_freq: (int) Evaluate the agent every eval_freq call of the callback.
-    :param deterministic: (bool)
+    :param log_path: (str) Path to a log file (.npz) where the evaluations
+        will be saved. It will be updated at each evaluation.
+    :param best_model_save_path: (str) Path to a folder where the best model
+        according to performance on the eval env will be saved.
+    :param deterministic: (bool) Whether the evaluation should
+        use a stochastic or deterministic actions.
+    :param verbose: (int)
     """
     def __init__(self, eval_env: Union[gym.Env, VecEnv],
-                 n_eval_episodes=5, best_model_save_path=None,
-                 eval_freq=10000, deterministic=True, verbose=1):
+                 n_eval_episodes=5, eval_freq=10000, log_path=None,
+                 best_model_save_path=None,
+                 deterministic=True, verbose=1):
         super(EvalCallback, self).__init__(verbose=verbose)
         self.n_eval_episodes = n_eval_episodes
         self.eval_freq = eval_freq
         self.best_mean_reward = -np.inf
         self.deterministic = deterministic
-        # TODO: check the env (num_envs == 1 and type(training_env) == type(eval_env))
+        if isinstance(eval_env, VecEnv):
+            assert eval_env.num_envs == 1, "You must pass only one environment for evaluation"
+
         self.eval_env = eval_env
         self.best_model_save_path = best_model_save_path
+        self.log_path = log_path
+        self.evaluations_results = []
+        self.evaluations_timesteps = []
+
+    def init_callback(self, model):
+        super(EvalCallback, self).init_callback(model)
+        assert type(self.training_env) is type(self.eval_env), ("training and eval env are not of the same type",
+                                                                "{} != {}".format(self.training_env, self.eval_env))
+        # Create folders if needed
+        if self.best_model_save_path is not None:
+            os.makedirs(self.best_model_save_path, exist_ok=True)
+        if self.log_path is not None:
+            os.makedirs(os.path.dirname(self.log_path), exist_ok=True)
 
     def on_step(self, locals_: dict, globals_: dict) -> bool:
-        """
-        :param locals_: (dict)
-        :param globals_: (dict)
-        :return: (bool)
-        """
 
         if self.n_calls % self.eval_freq == 0:
-            # TODO: sync training and eval env if there is VecNormalize
+            # Sync training and eval env if there is VecNormalize
+            sync_envs_normalization(self.training_env, self.eval_env)
+
             episode_rewards, _ = evaluate_policy(self.model, self.eval_env, n_eval_episodes=self.n_eval_episodes,
                                                  deterministic=self.deterministic, return_episode_rewards=True)
 
+            if self.log_path is not None:
+                self.evaluations_timesteps.append(self.num_timesteps)
+                self.evaluations_results.append(episode_rewards)
+                np.savez(self.log_path, timesteps=self.evaluations_timesteps, results=self.evaluations_results)
 
             mean_reward, std_reward = np.mean(episode_rewards), np.std(episode_rewards)
             if self.verbose > 0:
@@ -184,9 +217,8 @@ class EvalCallback(BaseCallback):
 
             if mean_reward > self.best_mean_reward:
                 print("New best mean reward!")
-                # TODO: Save the agent if needed?
                 if self.best_model_save_path is not None:
-                    self.model.save(self.best_model_save_path)
+                    self.model.save(os.path.join(self.best_model_save_path, 'best_model'))
                 self.best_mean_reward = mean_reward
 
         return True
