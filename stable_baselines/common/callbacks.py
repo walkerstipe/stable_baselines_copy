@@ -188,8 +188,10 @@ class EvalCallback(BaseCallback):
 
     def init_callback(self, model):
         super(EvalCallback, self).init_callback(model)
-        assert type(self.training_env) is type(self.eval_env), ("training and eval env are not of the same type",
-                                                                "{} != {}".format(self.training_env, self.eval_env))
+        # Does not work when eval_env is a gym.Env and training_env is a VecEnv
+        # assert type(self.training_env) is type(self.eval_env), ("training and eval env are not of the same type",
+        #                                                         "{} != {}".format(self.training_env, self.eval_env))
+
         # Create folders if needed
         if self.best_model_save_path is not None:
             os.makedirs(self.best_model_save_path, exist_ok=True)

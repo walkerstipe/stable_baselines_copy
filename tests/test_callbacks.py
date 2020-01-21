@@ -15,4 +15,7 @@ def test_callbacks(model_class):
     callback = CallbackList([checkpoint_callback, eval_callback])
     model.learn(1000, callback=callback)
     model.learn(500, callback=None)
+    # Transform callback into a callback list automatically
+    model.learn(500, callback=[checkpoint_callback, eval_callback])
+    # Automatic wrapping, old way of doing callbacks
     model.learn(500, callback=lambda _locals, _globals : True)

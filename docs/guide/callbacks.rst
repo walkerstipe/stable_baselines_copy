@@ -4,7 +4,7 @@ Callbacks
 =========
 
 A callback is a set of functions that will be called at given stages of the training procedure.
-You can use callbacks to get a view on internal states and statistics of the RL model during training.
+You can use callbacks to access internal state of the RL model during training.
 It allows to do monitoring, auto saving, model manipulation, progress bars, ...
 
 
@@ -17,6 +17,8 @@ Thanks to the access to the models variables, in particular `_locals["self"]`, w
 
 
 .. code-block:: python
+
+	from stable_baselines import PPO2
 
 	def simple_callback(_locals, _globals):
 		"""
@@ -34,11 +36,16 @@ Thanks to the access to the models variables, in particular `_locals["self"]`, w
 		print("stop training")
 		return False # returns False, training stops.
 
+		model = PPO2('MlpPolicy', 'CartPole-v1')
+		model.learn(2000, callback=simple_callback)
+
 
 Object oriented approach
 ------------------------
 
 .. code-block:: python
+
+	from stable_baselines.common.callbacks import BaseCallback
 
 	class CustomCallback(BaseCallback):
 		"""
@@ -74,6 +81,87 @@ Object oriented approach
 
 Callback Collection
 -------------------
+
+Stable Baselines provides you with a set of common callbacks.
+
+CheckpointCallback
+^^^^^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+	from stable_baselines import SAC
+	from stable_baselines.common.callbacks import CheckpointCallback
+
+	checkpoint_callback = CheckpointCallback(save_freq=1000, save_path='./logs/')
+
+	model = SAC('MlpPolicy', 'Pendulum-v0')
+	model.learn(2000, callback=checkpoint_callback)
+
+
+EvalCallback
+^^^^^^^^^^^^
+
+For proper evaluation, using a separate test environment.
+
+.. code-block:: python
+
+	import gym
+
+	from stable_baselines import SAC
+	from stable_baselines.common.callbacks import EvalCallback
+
+	# Separate evaluation env
+	eval_env = gym.make('Pendulum-v0')
+	eval_callback = EvalCallback(eval_env, best_model_save_path='./logs/best_model',
+															 log_path='./logs/results', eval_freq=500)
+
+	model = SAC('MlpPolicy', 'Pendulum-v0')
+	model.learn(5000, callback=eval_callback)
+
+
+CallbackList
+^^^^^^^^^^^^
+
+For chaining callbacks.
+
+.. code-block:: python
+
+	import gym
+
+	from stable_baselines import SAC
+	from stable_baselines.common.callbacks import CallbackList, CheckpointCallback, EvalCallback
+
+	checkpoint_callback = CheckpointCallback(save_freq=1000, save_path='./logs/')
+	# Separate evaluation env
+	eval_env = gym.make('Pendulum-v0')
+	eval_callback = EvalCallback(eval_env, best_model_save_path='./logs/best_model',
+															 log_path='./logs/results', eval_freq=500)
+	# Create the callback list
+	callback = CallbackList([checkpoint_callback, eval_callback])
+
+	model = SAC('MlpPolicy', 'Pendulum-v0')
+	# Equivalent to:
+	# model.learn(5000, callback=[checkpoint_callback, eval_callback])
+	model.learn(5000, callback=callback)
+
+
+LambdaCallback
+^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+	import gym
+
+	from stable_baselines import SAC
+	from stable_baselines.common.callbacks import LambdaCallback
+
+	# Dummy callback
+	callback = LambdaCallback(on_training_start=None,
+													  on_step=lambda _locals, _globals : True,
+														on_training_end=None)
+
+	model = SAC('MlpPolicy', 'Pendulum-v0')
+	model.learn(5000, callback=callback)
 
 
 .. automodule:: stable_baselines.common.callbacks

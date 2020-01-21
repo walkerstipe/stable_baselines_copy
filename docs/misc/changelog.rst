@@ -17,6 +17,9 @@ New Features:
 - Parallelized updating and sampling from the replay buffer in DQN. (@flodorner)
 - Docker build script, `scripts/build_docker.sh`, can push images automatically.
 - Added callback collection
+- Added `unwrap_vec_normalize` and `sync_envs_normalization` in the `vec_env` module
+  to synchronize two VecNormalize environment
+
 
 Bug Fixes:
 ^^^^^^^^^^
