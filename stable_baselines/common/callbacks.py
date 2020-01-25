@@ -243,6 +243,9 @@ class EventCallback(BaseCallback):
     def _init_callback(self):
         self.callback.init_callback(self.model)
 
+    def _on_training_start(self) -> None:
+        self.callback.on_training_start(self.locals, self.globals)
+
     def _on_event(self) -> bool:
         return self.callback()
 
