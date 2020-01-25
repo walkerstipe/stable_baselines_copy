@@ -23,13 +23,14 @@ Thanks to the access to the models variables, in particular `_locals["self"]`, w
     from stable_baselines import PPO2
 
 
-    def simple_callback(_locals: Dict[str, Any], _globals: Dict[str, Any]):
+    def simple_callback(_locals: Dict[str, Any], _globals: Dict[str, Any]) -> bool:
         """
         Callback called at each step (for DQN and others) or after n steps (see ACER or PPO2).
         This callback will save the model and stop the training after the first call.
 
         :param _locals: (Dict[str, Any])
         :param _globals: (Dict[str, Any])
+        :return: (bool) If your callback returns False, training is aborted early.
         """
         print("callback called")
         # Save the model

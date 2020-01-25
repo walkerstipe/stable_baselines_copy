@@ -148,6 +148,10 @@ Multiprocessing: Unleashing the Power of Vectorized Environments
 Using Callback: Monitoring Training
 -----------------------------------
 
+.. note::
+
+	We recommend reading the `Callback section <callbacks.html>`_
+
 You can define a custom callback function that will be called inside the agent.
 This could be useful when you want to monitor training, for instance display live
 learning curves in Tensorboard (or in Visdom) or save the best agent.
@@ -182,8 +186,9 @@ If your callback returns False, training is aborted early.
   def callback(_locals, _globals):
       """
       Callback called at each step (for DQN an others) or after n steps (see ACER or PPO2)
-      :param _locals: (dict)
-      :param _globals: (dict)
+      :param _locals: (Dict[str, Any])
+      :param _globals: (Dict[str, Any])
+      :return: (bool) If your callback returns False, training is aborted early.
       """
       global n_steps, best_mean_reward
       # Print stats every 1000 calls
