@@ -173,16 +173,14 @@ class BaseRLModel(ABC):
         :return: (BaseCallback)
         """
         # Avoid circular import
-        from stable_baselines.common.callbacks import BaseCallback, CallbackList, LambdaCallback
-        if callback is None:
-            # Dummy callback
-            callback = lambda _locals, _globals: True
+        from stable_baselines.common.callbacks import BaseCallback, CallbackList, ConvertCallback
+
         # Convert a list of callbacks into a callback
         if isinstance(callback, list):
             callback = CallbackList(callback)
-        # Convert to object
+        # Convert functional callback to object
         if not isinstance(callback, BaseCallback):
-            callback = LambdaCallback(on_step=callback)
+            callback = ConvertCallback(callback)
 
         callback.init_callback(self)
         return callback

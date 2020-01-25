@@ -46,11 +46,12 @@ Thanks to the access to the models variables, in particular `_locals["self"]`, w
 Object oriented approach
 ------------------------
 
+This is the recommended approach.
+
 .. code-block:: python
 
-    from typing import Dict, Any
-
     from stable_baselines.common.callbacks import BaseCallback
+
 
     class CustomCallback(BaseCallback):
         """
@@ -66,21 +67,23 @@ Object oriented approach
             # self.training_env = None
             # self.n_calls = 0
             # self.num_timesteps = 0
+            # self.locals = None
+            # self.globals = None
 
-        def on_training_start(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> None:
+        def _on_training_start(self) -> None:
             pass
 
-        def on_step(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> bool:
-            """ This method will be called by the model.
+        def _on_step(self) -> bool:
+            """
+            This method will be called by the model.
             This is the equivalent to the callback function.
+            `locals()` and `globals()` are directly accessible as attributes.
 
-            :param locals_: (Dict[str, Any])
-            :param globals_: (Dict[str, Any])
-            :return: (bool)
+            :return: (bool) Return True for continuing training, False for stopping.
             """
             return True
 
-        def on_training_end(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> None:
+        def _on_training_end(self) -> None:
             pass
 
 
@@ -149,24 +152,6 @@ For chaining callbacks.
     # model.learn(5000, callback=[checkpoint_callback, eval_callback])
     model.learn(5000, callback=callback)
 
-
-LambdaCallback
-^^^^^^^^^^^^^^
-
-.. code-block:: python
-
-    import gym
-
-    from stable_baselines import SAC
-    from stable_baselines.common.callbacks import LambdaCallback
-
-    # Dummy callback
-    callback = LambdaCallback(on_training_start=None,
-                              on_step=lambda _locals, _globals : True,
-                              on_training_end=None)
-
-    model = SAC('MlpPolicy', 'Pendulum-v0')
-    model.learn(5000, callback=callback)
 
 
 .. automodule:: stable_baselines.common.callbacks

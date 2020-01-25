@@ -397,7 +397,7 @@ class SAC(OffPolicyRLModel):
             for step in range(total_timesteps):
                 # Only stop training if return value is False, not when it is None. This is for backwards
                 # compatibility with callbacks that have no return statement.
-                if callback(locals(), globals()) is False:
+                if callback() is False:
                     break
 
                 # Before training starts, randomly sample actions
@@ -501,9 +501,7 @@ class SAC(OffPolicyRLModel):
                     logger.dumpkvs()
                     # Reset infos:
                     infos_values = []
-            # TODO: should we also call that one if the callback
-            # stop the training before?
-            callback.on_training_end(locals(), globals())
+            callback.on_training_end()
             return self
 
     def action_probability(self, observation, state=None, mask=None, actions=None, logp=False):

@@ -23,6 +23,8 @@ class BaseCallback(ABC):
         self.n_calls = 0
         self.num_timesteps = 0
         self.verbose = verbose
+        self.locals = None
+        self.globals = None
 
     def init_callback(self, model: BaseRLModel) -> None:
         """
@@ -31,40 +33,48 @@ class BaseCallback(ABC):
         """
         self.model = model
         self.training_env = model.get_env()
+        self._init_callback()
+
+    def _init_callback(self) -> None:
+        pass
 
     def on_training_start(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> None:
+        # Those are reference and will be updated automatically
+        self.locals = locals_
+        self.globals = globals_
+        self._on_training_start()
+
+    def _on_training_start(self) -> None:
         pass
 
     # Should we include that?
     # def on_rollout_start(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> None:
     #     pass
 
-    @abstractmethod
-    def on_step(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> bool:
+    def _on_step(self) -> bool:
         """
         TODO: Should we modify current implementation?
         i.e. call after each env step instead after each rollout (current implementation)?
 
-        :param locals_: (Dict[str, Any])
-        :param globals_: (Dict[str, Any])
         :return: (bool)
         """
         return True
 
-    def __call__(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> bool:
+    def __call__(self) -> bool:
         """
         This method will be called by the model. This is the equivalent to the callback function.
-        :param locals_: (Dict[str, Any])
-        :param globals_: (Dict[str, Any])
         :return: (bool)
         """
         self.n_calls += 1
         # timesteps start at zero
         self.num_timesteps = self.model.num_timesteps + 1
 
-        return self.on_step(locals_, globals_)
+        return self._on_step()
 
-    def on_training_end(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> None:
+    def on_training_end(self) -> None:
+        self._on_training_end()
+
+    def _on_training_end(self):
         pass
 
     # Should we include that?
@@ -78,28 +88,27 @@ class CallbackList(BaseCallback):
         assert isinstance(callbacks, list)
         self.callbacks = callbacks
 
-    def init_callback(self, model):
-        super(CallbackList, self).init_callback(model)
+    def _init_callback(self):
         for callback in self.callbacks:
-            callback.init_callback(model)
+            callback.init_callback(self.model)
 
-    def on_training_start(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> None:
+    def _on_training_start(self) -> None:
         for callback in self.callbacks:
-            callback.on_training_start(locals_, globals_)
+            callback.on_training_start(self.locals, self.globals)
 
-    def on_step(self, locals_, globals_):
+    def _on_step(self):
         continue_training = True
         for callback in self.callbacks:
-            # Update variables
-            callback.num_timesteps = self.num_timesteps
-            callback.n_calls = self.n_calls
+            # # Update variables
+            # callback.num_timesteps = self.num_timesteps
+            # callback.n_calls = self.n_calls
             # Return False (stop training) if at least one callback returns False
-            continue_training = callback.on_step(locals_, globals_) and continue_training
+            continue_training = callback() and continue_training
         return continue_training
 
-    def on_training_end(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> None:
+    def _on_training_end(self) -> None:
         for callback in self.callbacks:
-            callback.on_training_end(locals_, globals_)
+            callback.on_training_end()
 
 
 class CheckpointCallback(BaseCallback):
@@ -116,13 +125,12 @@ class CheckpointCallback(BaseCallback):
         self.save_path = save_path
         self.name_prefix = name_prefix
 
-    def init_callback(self, model: BaseRLModel) -> None:
-        super(CheckpointCallback, self).init_callback(model)
+    def _init_callback(self) -> None:
         # Create folder if needed
         if self.save_path is not None:
             os.makedirs(self.save_path, exist_ok=True)
 
-    def on_step(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> bool:
+    def _on_step(self) -> bool:
         if self.n_calls % self.save_freq == 0:
             path = os.path.join(self.save_path, '{}_{}_steps'.format(self.name_prefix, self.num_timesteps))
             self.model.save(path)
@@ -131,26 +139,21 @@ class CheckpointCallback(BaseCallback):
         return True
 
 
-class LambdaCallback(BaseCallback):
+class ConvertCallback(BaseCallback):
     """
-    :param on_training_start: (callable)
+    Convert functional callback (old-style) to object.
+
     :param on_step: (callable)
-    :param on_training_end: (callable)
     :param verbose: (int)
     """
-    def __init__(self, on_training_start=None, on_step=None, on_training_end=None, verbose=0):
-        super(LambdaCallback, self).__init__(verbose)
-        if on_training_start is not None:
-            self.on_training_start = on_training_start
-        if on_step is not None:
-            self._on_step = on_step
-        else:
-            self._on_step = lambda _locals, _globals: True
-        if on_training_end is not None:
-            self.on_training_end = on_training_end
+    def __init__(self, callback, verbose=0):
+        super(ConvertCallback, self).__init__(verbose)
+        self.callback = callback
 
-    def on_step(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> bool:
-        return self._on_step(locals_, globals_)
+    def _on_step(self) -> bool:
+        if self.callback is not None:
+            return self.callback(self.locals, self.globals)
+        return True
 
 
 class EvalCallback(BaseCallback):
@@ -186,8 +189,7 @@ class EvalCallback(BaseCallback):
         self.evaluations_results = []
         self.evaluations_timesteps = []
 
-    def init_callback(self, model):
-        super(EvalCallback, self).init_callback(model)
+    def _init_callback(self):
         # Does not work when eval_env is a gym.Env and training_env is a VecEnv
         # assert type(self.training_env) is type(self.eval_env), ("training and eval env are not of the same type",
         #                                                         "{} != {}".format(self.training_env, self.eval_env))
@@ -198,7 +200,7 @@ class EvalCallback(BaseCallback):
         if self.log_path is not None:
             os.makedirs(os.path.dirname(self.log_path), exist_ok=True)
 
-    def on_step(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> bool:
+    def _on_step(self) -> bool:
 
         if self.n_calls % self.eval_freq == 0:
             # Sync training and eval env if there is VecNormalize
@@ -223,4 +225,42 @@ class EvalCallback(BaseCallback):
                     self.model.save(os.path.join(self.best_model_save_path, 'best_model'))
                 self.best_mean_reward = mean_reward
 
+        return True
+
+
+class EventCallback(BaseCallback):
+    """
+    Base class for triggering callback on event.
+
+    :param callback: (BaseCallback) Callback that will be called
+        when an event is triggered.
+    """
+    def __init__(self, callback: BaseCallback):
+        super(EventCallback, self).__init__()
+        self.callback = callback
+
+    def _init_callback(self):
+        self.callback.init_callback(self.model)
+
+    def _on_event(self) -> bool:
+        return self.callback()
+
+
+class EveryNTimesteps(EventCallback):
+    """
+    Trigger a callback every `n_steps` timesteps
+
+    :param n_steps: (int) Number of timesteps between two trigger.
+    :param callback: (BaseCallback) Callback that will be called
+        when the event is triggered.
+    """
+    def __init__(self, n_steps: int, callback: BaseCallback):
+        super(EveryNTimesteps, self).__init__(callback)
+        self.n_steps = n_steps
+        self.last_time_trigger = 0
+
+    def _on_step(self):
+        if (self.num_timesteps - self.last_time_trigger) >= self.n_steps:
+            self.last_time_trigger = self.num_timesteps
+            return self._on_event()
         return True
