@@ -5,7 +5,7 @@ Callbacks
 
 A callback is a set of functions that will be called at given stages of the training procedure.
 You can use callbacks to access internal state of the RL model during training.
-It allows to do monitoring, auto saving, model manipulation, progress bars, ...
+It allows one to do monitoring, auto saving, model manipulation, progress bars, ...
 
 
 A functional approach
@@ -18,15 +18,18 @@ Thanks to the access to the models variables, in particular `_locals["self"]`, w
 
 .. code-block:: python
 
+    from typing import Dict, Any
+
     from stable_baselines import PPO2
 
-    def simple_callback(_locals, _globals):
+
+    def simple_callback(_locals: Dict[str, Any], _globals: Dict[str, Any]):
         """
-        Callback called at each step (for DQN an others) or after n steps (see ACER or PPO2).
+        Callback called at each step (for DQN and others) or after n steps (see ACER or PPO2).
         This callback will save the model and stop the training after the first call.
 
-        :param _locals: (dict)
-        :param _globals: (dict)
+        :param _locals: (Dict[str, Any])
+        :param _globals: (Dict[str, Any])
         """
         print("callback called")
         # Save the model
@@ -36,14 +39,16 @@ Thanks to the access to the models variables, in particular `_locals["self"]`, w
         print("stop training")
         return False # returns False, training stops.
 
-        model = PPO2('MlpPolicy', 'CartPole-v1')
-        model.learn(2000, callback=simple_callback)
+    model = PPO2('MlpPolicy', 'CartPole-v1')
+    model.learn(2000, callback=simple_callback)
 
 
 Object oriented approach
 ------------------------
 
 .. code-block:: python
+
+    from typing import Dict, Any
 
     from stable_baselines.common.callbacks import BaseCallback
 
@@ -62,20 +67,20 @@ Object oriented approach
             # self.n_calls = 0
             # self.num_timesteps = 0
 
-        def on_training_start(self, locals_: dict, globals_: dict) -> None:
+        def on_training_start(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> None:
             pass
 
-        def on_step(self, locals_: dict, globals_: dict) -> bool:
+        def on_step(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> bool:
             """ This method will be called by the model.
             This is the equivalent to the callback function.
 
-            :param locals_: (dict)
-            :param globals_: (dict)
+            :param locals_: (Dict[str, Any])
+            :param globals_: (Dict[str, Any])
             :return: (bool)
             """
             return True
 
-        def on_training_end(self, locals_: dict, globals_: dict) -> None:
+        def on_training_end(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> None:
             pass
 
 

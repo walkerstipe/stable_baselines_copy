@@ -1,6 +1,6 @@
 import os
 from abc import ABC, abstractmethod
-from typing import Union, List
+from typing import Union, List, Dict, Any
 
 import gym
 import numpy as np
@@ -32,30 +32,30 @@ class BaseCallback(ABC):
         self.model = model
         self.training_env = model.get_env()
 
-    def on_training_start(self, locals_: dict, globals_: dict) -> None:
+    def on_training_start(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> None:
         pass
 
     # Should we include that?
-    # def on_rollout_start(self, locals_: dict, globals_: dict) -> None:
+    # def on_rollout_start(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> None:
     #     pass
 
     @abstractmethod
-    def on_step(self, locals_: dict, globals_: dict) -> bool:
+    def on_step(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> bool:
         """
         TODO: Should we modify current implementation?
         i.e. call after each env step instead after each rollout (current implementation)?
 
-        :param locals_: (dict)
-        :param globals_: (dict)
+        :param locals_: (Dict[str, Any])
+        :param globals_: (Dict[str, Any])
         :return: (bool)
         """
         return True
 
-    def __call__(self, locals_: dict, globals_: dict) -> bool:
+    def __call__(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> bool:
         """
         This method will be called by the model. This is the equivalent to the callback function.
-        :param locals_: (dict)
-        :param globals_: (dict)
+        :param locals_: (Dict[str, Any])
+        :param globals_: (Dict[str, Any])
         :return: (bool)
         """
         self.n_calls += 1
@@ -64,11 +64,11 @@ class BaseCallback(ABC):
 
         return self.on_step(locals_, globals_)
 
-    def on_training_end(self, locals_: dict, globals_: dict) -> None:
+    def on_training_end(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> None:
         pass
 
     # Should we include that?
-    # def on_rollout_end(self, locals_: dict, globals_: dict) -> None:
+    # def on_rollout_end(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> None:
     #     pass
 
 
@@ -83,7 +83,7 @@ class CallbackList(BaseCallback):
         for callback in self.callbacks:
             callback.init_callback(model)
 
-    def on_training_start(self, locals_: dict, globals_: dict) -> None:
+    def on_training_start(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> None:
         for callback in self.callbacks:
             callback.on_training_start(locals_, globals_)
 
@@ -97,7 +97,7 @@ class CallbackList(BaseCallback):
             continue_training = callback.on_step(locals_, globals_) and continue_training
         return continue_training
 
-    def on_training_end(self, locals_: dict, globals_: dict) -> None:
+    def on_training_end(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> None:
         for callback in self.callbacks:
             callback.on_training_end(locals_, globals_)
 
@@ -122,7 +122,7 @@ class CheckpointCallback(BaseCallback):
         if self.save_path is not None:
             os.makedirs(self.save_path, exist_ok=True)
 
-    def on_step(self, locals_: dict, globals_: dict) -> bool:
+    def on_step(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> bool:
         if self.n_calls % self.save_freq == 0:
             path = os.path.join(self.save_path, '{}_{}_steps'.format(self.name_prefix, self.num_timesteps))
             self.model.save(path)
@@ -149,7 +149,7 @@ class LambdaCallback(BaseCallback):
         if on_training_end is not None:
             self.on_training_end = on_training_end
 
-    def on_step(self, locals_: dict, globals_: dict) -> bool:
+    def on_step(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> bool:
         return self._on_step(locals_, globals_)
 
 
@@ -198,7 +198,7 @@ class EvalCallback(BaseCallback):
         if self.log_path is not None:
             os.makedirs(os.path.dirname(self.log_path), exist_ok=True)
 
-    def on_step(self, locals_: dict, globals_: dict) -> bool:
+    def on_step(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> bool:
 
         if self.n_calls % self.eval_freq == 0:
             # Sync training and eval env if there is VecNormalize
