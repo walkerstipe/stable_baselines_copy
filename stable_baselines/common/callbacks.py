@@ -51,6 +51,7 @@ class BaseCallback(ABC):
     # def on_rollout_start(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> None:
     #     pass
 
+    @abstractmethod
     def _on_step(self) -> bool:
         """
         TODO: Should we modify current implementation?
