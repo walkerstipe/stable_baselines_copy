@@ -28,7 +28,7 @@ def unwrap_vec_normalize(env: Union[gym.Env, VecEnv]) -> Union[VecNormalize, Non
 
 
 # Define here to avoid circular import
-def sync_envs_normalization(env: Union[gym.Env, VecEnv], eval_env: Union[gym.Env, VecEnv]):
+def sync_envs_normalization(env: Union[gym.Env, VecEnv], eval_env: Union[gym.Env, VecEnv]) -> None:
     """
     Sync eval and train environments when using VecNormalize
 
@@ -36,6 +36,11 @@ def sync_envs_normalization(env: Union[gym.Env, VecEnv], eval_env: Union[gym.Env
     :param eval_env: (Union[gym.Env, VecEnv]))
     """
     env_tmp, eval_env_tmp = env, eval_env
+    # Special case for the _UnvecWrapper
+    # Avoid circular import
+    from stable_baselines.common.base_class import _UnvecWrapper
+    if isinstance(env_tmp, _UnvecWrapper):
+        return
     while isinstance(env_tmp, VecEnvWrapper):
         if isinstance(env_tmp, VecNormalize):
             # No need to sync the reward scaling

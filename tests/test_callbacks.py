@@ -1,7 +1,8 @@
 import pytest
 
 from stable_baselines import SAC
-from stable_baselines.common.callbacks import CallbackList, CheckpointCallback, EvalCallback, EveryNTimesteps
+from stable_baselines.common.callbacks import (CallbackList, CheckpointCallback, EvalCallback,
+    EveryNTimesteps, StopTrainingOnRewardThreshold)
 
 
 @pytest.mark.parametrize("model_class", [SAC])
@@ -13,7 +14,11 @@ def test_callbacks(model_class):
 
     # For testing: use the same training env
     eval_env = model.get_env()
-    eval_callback = EvalCallback(eval_env, best_model_save_path='./logs/best_model',
+    # Stop training if the performance is good enough
+    callback_on_best = StopTrainingOnRewardThreshold(reward_threshold=-1200, verbose=1)
+
+    eval_callback = EvalCallback(eval_env, callback_on_new_best=callback_on_best,
+                                 best_model_save_path='./logs/best_model',
                                  log_path='./logs/results', eval_freq=100)
 
     # Equivalent to the `checkpoint_callback`

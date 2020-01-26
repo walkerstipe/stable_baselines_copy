@@ -154,6 +154,30 @@ For chaining callbacks.
     model.learn(5000, callback=callback)
 
 
+StopTrainingOnRewardThreshold
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Stop the training once a threshold in episodic reward has been reached (i.e. when the model is good enough).
+It must be used with the `EvalCallback` and use the event triggered by a new best model.
+
+.. code-block:: python
+
+    import gym
+
+    from stable_baselines import SAC
+    from stable_baselines.common.callbacks import EvalCallback, StopTrainingOnRewardThreshold
+
+    # Separate evaluation env
+    eval_env = gym.make('Pendulum-v0')
+    # Stop training when the model reaches
+    callback_on_best = StopTrainingOnRewardThreshold(reward_threshold=-200, verbose=1)
+    eval_callback = EvalCallback(eval_env, callback_on_new_best=callback_on_best, verbose=1)
+
+    model = SAC('MlpPolicy', 'Pendulum-v0', verbose=1)
+    # Almost infinite number of timesteps, but the training will stop
+    # early as soon as the reward threshold is reached
+    model.learn(int(1e10), callback=eval_callback)
+
 
 .. automodule:: stable_baselines.common.callbacks
   :members:

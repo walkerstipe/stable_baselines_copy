@@ -1,6 +1,6 @@
 import os
 from abc import ABC, abstractmethod
-from typing import Union, List, Dict, Any
+from typing import Union, List, Dict, Any, Optional
 
 import gym
 import numpy as np
@@ -16,15 +16,18 @@ class BaseCallback(ABC):
 
     :param verbose: (int)
     """
-    def __init__(self, verbose=0):
+    def __init__(self, verbose: int = 0):
         super(BaseCallback, self).__init__()
-        self.model = None
-        self.training_env = None
-        self.n_calls = 0
-        self.num_timesteps = 0
+        self.model = None  # type: BaseRLModel
+        self.training_env = None  # type: Union[gym.Env, VecEnv, None]
+        self.n_calls = 0  # type: int
+        self.num_timesteps = 0  # type: int
         self.verbose = verbose
-        self.locals = None
-        self.globals = None
+        self.locals = None  # type: Dict[str, Any]
+        self.globals = None  # type: Dict[str, Any]
+        # Sometimes, for event callback, it is useful
+        # to have access to the parent object
+        self.parent = None  # type: Optional[BaseCallback]
 
     def init_callback(self, model: BaseRLModel) -> None:
         """
@@ -57,14 +60,14 @@ class BaseCallback(ABC):
         TODO: Should we modify current implementation?
         i.e. call after each env step instead after each rollout (current implementation)?
 
-        :return: (bool)
+        :return: (bool) If the callback returns False, training is aborted early.
         """
         return True
 
     def __call__(self) -> bool:
         """
         This method will be called by the model. This is the equivalent to the callback function.
-        :return: (bool)
+        :return: (bool) If the callback returns False, training is aborted early.
         """
         self.n_calls += 1
         # timesteps start at zero
@@ -75,12 +78,40 @@ class BaseCallback(ABC):
     def on_training_end(self) -> None:
         self._on_training_end()
 
-    def _on_training_end(self):
+    def _on_training_end(self) -> None:
         pass
 
     # Should we include that?
     # def on_rollout_end(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> None:
     #     pass
+
+
+class EventCallback(BaseCallback):
+    """
+    Base class for triggering callback on event.
+
+    :param callback: (Optional[BaseCallback]) Callback that will be called
+        when an event is triggered.
+    :param verbose: (int)
+    """
+    def __init__(self, callback: Optional[BaseCallback] = None, verbose: int = 0):
+        super(EventCallback, self).__init__(verbose=verbose)
+        self.callback = callback
+        # Give access to the parent
+        if callback is not None:
+            self.callback.parent = self
+
+    def init_callback(self, model: BaseRLModel) -> None:
+        super(EventCallback, self).init_callback(model)
+        self.callback.init_callback(self.model)
+
+    def _on_training_start(self) -> None:
+        self.callback.on_training_start(self.locals, self.globals)
+
+    def _on_event(self) -> bool:
+        if self.callback is not None:
+            return self.callback()
+        return True
 
 
 class CallbackList(BaseCallback):
@@ -89,7 +120,7 @@ class CallbackList(BaseCallback):
         assert isinstance(callbacks, list)
         self.callbacks = callbacks
 
-    def _init_callback(self):
+    def _init_callback(self) -> None:
         for callback in self.callbacks:
             callback.init_callback(self.model)
 
@@ -97,7 +128,7 @@ class CallbackList(BaseCallback):
         for callback in self.callbacks:
             callback.on_training_start(self.locals, self.globals)
 
-    def _on_step(self):
+    def _on_step(self) -> bool:
         continue_training = True
         for callback in self.callbacks:
             # # Update variables
@@ -157,11 +188,13 @@ class ConvertCallback(BaseCallback):
         return True
 
 
-class EvalCallback(BaseCallback):
+class EvalCallback(EventCallback):
     """
     Callback for evaluating an agent.
 
     :param eval_env: (Union[gym.Env, VecEnv]) The environment used for initialization
+    :param callback_on_new_best: (Optional[BaseCallback]) Callback to trigger
+        when there is a new best model according to the `mean_reward`
     :param n_eval_episodes: (int) The number of episodes to test the agent
     :param eval_freq: (int) Evaluate the agent every eval_freq call of the callback.
     :param log_path: (str) Path to a log file (.npz) where the evaluations
@@ -173,10 +206,14 @@ class EvalCallback(BaseCallback):
     :param verbose: (int)
     """
     def __init__(self, eval_env: Union[gym.Env, VecEnv],
-                 n_eval_episodes=5, eval_freq=10000, log_path=None,
-                 best_model_save_path=None,
-                 deterministic=True, verbose=1):
-        super(EvalCallback, self).__init__(verbose=verbose)
+                 callback_on_new_best: Optional[BaseCallback] = None,
+                 n_eval_episodes: int = 5,
+                 eval_freq: int = 10000,
+                 log_path: str = None,
+                 best_model_save_path: str = None,
+                 deterministic: bool = True,
+                 verbose: int = 1):
+        super(EvalCallback, self).__init__(callback_on_new_best, verbose=verbose)
         self.n_eval_episodes = n_eval_episodes
         self.eval_freq = eval_freq
         self.best_mean_reward = -np.inf
@@ -221,33 +258,42 @@ class EvalCallback(BaseCallback):
                       "episode_reward={:.2f} +/- {:.2f}".format(self.num_timesteps, mean_reward, std_reward))
 
             if mean_reward > self.best_mean_reward:
-                print("New best mean reward!")
+                if self.verbose > 0:
+                    print("New best mean reward!")
                 if self.best_model_save_path is not None:
                     self.model.save(os.path.join(self.best_model_save_path, 'best_model'))
                 self.best_mean_reward = mean_reward
+                # Trigger callback if needed
+                if self.callback is not None:
+                    return self._on_event()
 
         return True
 
 
-class EventCallback(BaseCallback):
+class StopTrainingOnRewardThreshold(BaseCallback):
     """
-    Base class for triggering callback on event.
+    Stop the training once a threshold in episodic reward
+    has been reached (i.e. when the model is good enough).
 
-    :param callback: (BaseCallback) Callback that will be called
-        when an event is triggered.
+    It must be used with the `EvalCallback`.
+
+    :param reward_threshold: (float)  Minimum expected reward per episode
+        to stop training.
+    :param verbose: (int)
     """
-    def __init__(self, callback: BaseCallback):
-        super(EventCallback, self).__init__()
-        self.callback = callback
+    def __init__(self, reward_threshold: float, verbose: int = 0):
+        super(StopTrainingOnRewardThreshold, self).__init__(verbose=verbose)
+        self.reward_threshold = reward_threshold
 
-    def _init_callback(self):
-        self.callback.init_callback(self.model)
-
-    def _on_training_start(self) -> None:
-        self.callback.on_training_start(self.locals, self.globals)
-
-    def _on_event(self) -> bool:
-        return self.callback()
+    def _on_step(self) -> bool:
+        assert self.parent is not None, ("`StopTrainingOnMinimumReward` callback must be used "
+                                         "with an `EvalCallback`")
+        # Convert np.bool to bool, otherwise callback() is False won't work
+        continue_training = bool(self.parent.best_mean_reward < self.reward_threshold)
+        if self.verbose > 0 and not continue_training:
+            print("Stopping training because the mean reward {} is above the threshold "
+                 "{}".format(self.parent.best_mean_reward, self.reward_threshold))
+        return continue_training
 
 
 class EveryNTimesteps(EventCallback):
@@ -263,7 +309,7 @@ class EveryNTimesteps(EventCallback):
         self.n_steps = n_steps
         self.last_time_trigger = 0
 
-    def _on_step(self):
+    def _on_step(self) -> bool:
         if (self.num_timesteps - self.last_time_trigger) >= self.n_steps:
             self.last_time_trigger = self.num_timesteps
             return self._on_event()
