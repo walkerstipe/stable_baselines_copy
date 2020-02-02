@@ -630,7 +630,7 @@ class _Runner(AbstractEnvRunner):
         self.states = model.initial_state
         self.dones = [False for _ in range(n_env)]
 
-    def run(self):
+    def _run(self):
         """
         Run a step leaning of the model
 

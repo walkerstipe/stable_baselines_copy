@@ -15,6 +15,8 @@ Breaking Changes:
   as second return value (instead of `n_steps`)
 - `evaluate_policy` now returns as second return value a list of the episode lengths
   when `return_episode_rewards` is set to `True` (instead of `n_steps`)
+- Callback are now called after each `env.step()` for consistency (it was called every `n_steps` before
+  in algorithm like `A2C` or `PPO2`)
 
 New Features:
 ^^^^^^^^^^^^^

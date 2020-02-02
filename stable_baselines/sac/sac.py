@@ -394,6 +394,8 @@ class SAC(OffPolicyRLModel):
 
             callback.on_training_start(locals(), globals())
 
+            callback.on_rollout_start()
+
             for step in range(total_timesteps):
                 # Only stop training if return value is False, not when it is None. This is for backwards
                 # compatibility with callbacks that have no return statement.
@@ -439,6 +441,8 @@ class SAC(OffPolicyRLModel):
                                                 ep_done, writer, self.num_timesteps)
 
                 if step % self.train_freq == 0:
+                    callback.on_rollout_end()
+                    
                     mb_infos_vals = []
                     # Update policy, critics and target networks
                     for grad_step in range(self.gradient_steps):
@@ -460,6 +464,8 @@ class SAC(OffPolicyRLModel):
                     # Log losses and entropy, useful for monitor training
                     if len(mb_infos_vals) > 0:
                         infos_values = np.mean(mb_infos_vals, axis=0)
+
+                    callback.on_rollout_start()
 
                 episode_rewards[-1] += reward
                 if done:

@@ -64,14 +64,21 @@ This is the recommended approach.
             super(CustomCallback, self).__init__(verbose)
             # Those variables will be accessible in the callback
             # (they are defined in the base class)
-            # self.model = None
-            # self.training_env = None
-            # self.n_calls = 0
-            # self.num_timesteps = 0
-            # self.locals = None
-            # self.globals = None
+            # self.model = None  # type: BaseRLModel
+            # self.training_env = None  # type: Union[gym.Env, VecEnv, None]
+            # self.n_calls = 0  # type: int
+            # self.num_timesteps = 0  # type: int
+            # self.locals = None  # type: Dict[str, Any]
+            # self.globals = None  # type: Dict[str, Any]
+            # self.logger = None  # type: logger.Logger
+            # # Sometimes, for event callback, it is useful
+            # # to have access to the parent object
+            # self.parent = None  # type: Optional[BaseCallback]
 
         def _on_training_start(self) -> None:
+            pass
+
+        def _on_rollout_start(self) -> None:
             pass
 
         def _on_step(self) -> bool:
@@ -83,6 +90,9 @@ This is the recommended approach.
             :return: (bool) Return True for continuing training, False for stopping.
             """
             return True
+
+        def _on_rollout_end(self) -> None:
+            pass
 
         def _on_training_end(self) -> None:
             pass
@@ -121,8 +131,8 @@ For proper evaluation, using a separate test environment.
 
     # Separate evaluation env
     eval_env = gym.make('Pendulum-v0')
-    eval_callback = EvalCallback(eval_env, best_model_save_path='./logs/best_model',
-                                 log_path='./logs/results', eval_freq=500)
+    eval_callback = EvalCallback(eval_env, best_model_save_path='./logs/',
+                                 log_path='./logs/', eval_freq=500)
 
     model = SAC('MlpPolicy', 'Pendulum-v0')
     model.learn(5000, callback=eval_callback)

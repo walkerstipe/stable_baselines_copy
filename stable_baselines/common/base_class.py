@@ -5,6 +5,7 @@ import zipfile
 import warnings
 from abc import ABC, abstractmethod
 from collections import OrderedDict, deque
+from typing import Union, List, Callable, Optional
 
 import gym
 import cloudpickle
@@ -16,6 +17,7 @@ from stable_baselines.common.save_util import data_to_json, json_to_data, params
 from stable_baselines.common.policies import get_policy_from_name, ActorCriticPolicy
 from stable_baselines.common.runners import AbstractEnvRunner
 from stable_baselines.common.vec_env import VecEnvWrapper, VecEnv, DummyVecEnv
+from stable_baselines.common.callbacks import BaseCallback, CallbackList, ConvertCallback
 from stable_baselines import logger
 
 
@@ -167,15 +169,13 @@ class BaseRLModel(ABC):
         """
         pass
 
-    def _init_callback(self, callback):
+    def _init_callback(self,
+                      callback: Union[None, Callable, List[BaseCallback], BaseCallback]
+                      ) -> BaseCallback:
         """
-        Note: we cannot use type hint here because of circular import.
-        :param callback: (Union[callable, [callable], BaseCallback], None)
+        :param callback: (Union[None, Callable, List[BaseCallback], BaseCallback])
         :return: (BaseCallback)
         """
-        # Avoid circular import
-        from stable_baselines.common.callbacks import BaseCallback, CallbackList, ConvertCallback
-
         # Convert a list of callbacks into a callback
         if isinstance(callback, list):
             callback = CallbackList(callback)
@@ -186,9 +186,9 @@ class BaseRLModel(ABC):
         callback.init_callback(self)
         return callback
 
-    def set_random_seed(self, seed):
+    def set_random_seed(self, seed: Optional[int]) -> None:
         """
-        :param seed: (int) Seed for the pseudo-random generators. If None,
+        :param seed: (Optional[int]) Seed for the pseudo-random generators. If None,
             do not change the seeds.
         """
         # Ignore if the seed is None
