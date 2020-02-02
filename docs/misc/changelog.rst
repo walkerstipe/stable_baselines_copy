@@ -11,6 +11,10 @@ Pre-Release 2.10.0a0 (WIP)
 
 Breaking Changes:
 ^^^^^^^^^^^^^^^^^
+- `evaluate_policy` now returns the standard deviation of the reward per episode
+  as second return value (instead of `n_steps`)
+- `evaluate_policy` now returns as second return value a list of the episode lengths
+  when `return_episode_rewards` is set to `True` (instead of `n_steps`)
 
 New Features:
 ^^^^^^^^^^^^^
