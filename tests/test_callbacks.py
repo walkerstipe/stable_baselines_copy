@@ -3,7 +3,7 @@ import shutil
 
 import pytest
 
-from stable_baselines import A2C, DDPG, PPO2, SAC
+from stable_baselines import A2C, ACER, DQN, DDPG, PPO1, PPO2, SAC, TD3, TRPO
 from stable_baselines.common.callbacks import (CallbackList, CheckpointCallback, EvalCallback,
     EveryNTimesteps, StopTrainingOnRewardThreshold, BaseCallback)
 
@@ -41,16 +41,30 @@ class CustomCallback(BaseCallback):
     def _on_training_end(self):
         self.calls['training_end'] = True
 
-    def validate(self):
+    def validate(self, allowed_failures):
+        for allowed_failure in allowed_failures:
+            self.calls[allowed_failure] = True
         assert all(self.calls.values())
 
 
-@pytest.mark.parametrize("model_class", [A2C, PPO2, DDPG, SAC])
+@pytest.mark.parametrize("model_class", [A2C, DQN, DDPG, PPO1, PPO2, SAC, TD3, TRPO])
 def test_callbacks(model_class):
-    # Create RL model
-    model = model_class('MlpPolicy', 'Pendulum-v0')
 
-    checkpoint_callback = CheckpointCallback(save_freq=1000, save_path=LOG_FOLDER)
+    env_id = 'Pendulum-v0'
+    if model_class in [ACER, DQN]:
+        env_id = 'CartPole-v1'
+
+    allowed_failures = []
+    # Number of training timesteps is too short
+    # otherwise, the training would take too long, or would require
+    # custom parameter per algorithm
+    if model_class in [PPO1, DQN, TRPO]:
+        allowed_failures = ['rollout_end']
+
+    # Create RL model
+    model = model_class('MlpPolicy', env_id)
+
+    checkpoint_callback = CheckpointCallback(save_freq=500, save_path=LOG_FOLDER)
 
     # For testing: use the same training env
     eval_env = model.get_env()
@@ -74,12 +88,12 @@ def test_callbacks(model_class):
     custom_callback = CustomCallback()
     model.learn(200, callback=custom_callback)
     # Check that every called were executed
-    custom_callback.validate()
+    custom_callback.validate(allowed_failures=allowed_failures)
     # Transform callback into a callback list automatically
     custom_callback = CustomCallback()
     model.learn(500, callback=[checkpoint_callback, eval_callback, custom_callback])
     # Check that every called were executed
-    custom_callback.validate()
+    custom_callback.validate(allowed_failures=allowed_failures)
 
     # Automatic wrapping, old way of doing callbacks
     model.learn(200, callback=lambda _locals, _globals : True)

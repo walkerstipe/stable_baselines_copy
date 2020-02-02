@@ -396,11 +396,6 @@ class SAC(OffPolicyRLModel):
             callback.on_rollout_start()
 
             for step in range(total_timesteps):
-                # Only stop training if return value is False, not when it is None. This is for backwards
-                # compatibility with callbacks that have no return statement.
-                if callback() is False:
-                    break
-
                 # Before training starts, randomly sample actions
                 # from a uniform distribution for better exploration.
                 # Afterwards, use the learned policy
@@ -422,6 +417,11 @@ class SAC(OffPolicyRLModel):
                 assert action.shape == self.env.action_space.shape
 
                 new_obs, reward, done, info = self.env.step(unscaled_action)
+
+                # Only stop training if return value is False, not when it is None. This is for backwards
+                # compatibility with callbacks that have no return statement.
+                if callback() is False:
+                    break
 
                 # Store transition in the replay buffer.
                 self.replay_buffer.add(obs, action, reward, new_obs, float(done))
