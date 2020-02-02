@@ -3,7 +3,7 @@ import shutil
 
 import pytest
 
-from stable_baselines import A2C, ACER, DQN, DDPG, PPO1, PPO2, SAC, TD3, TRPO
+from stable_baselines import A2C, ACKTR, ACER, DQN, DDPG, PPO1, PPO2, SAC, TD3, TRPO
 from stable_baselines.common.callbacks import (CallbackList, CheckpointCallback, EvalCallback,
     EveryNTimesteps, StopTrainingOnRewardThreshold, BaseCallback)
 
@@ -47,7 +47,7 @@ class CustomCallback(BaseCallback):
         assert all(self.calls.values())
 
 
-@pytest.mark.parametrize("model_class", [A2C, DQN, DDPG, PPO1, PPO2, SAC, TD3, TRPO])
+@pytest.mark.parametrize("model_class", [A2C, ACER, ACKTR, DQN, DDPG, PPO1, PPO2, SAC, TD3, TRPO])
 def test_callbacks(model_class):
 
     env_id = 'Pendulum-v0'
