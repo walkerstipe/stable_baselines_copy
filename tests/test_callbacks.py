@@ -3,7 +3,7 @@ import shutil
 
 import pytest
 
-from stable_baselines import A2C, PPO2, SAC
+from stable_baselines import A2C, DDPG, PPO2, SAC
 from stable_baselines.common.callbacks import (CallbackList, CheckpointCallback, EvalCallback,
     EveryNTimesteps, StopTrainingOnRewardThreshold, BaseCallback)
 
@@ -45,7 +45,7 @@ class CustomCallback(BaseCallback):
         assert all(self.calls.values())
 
 
-@pytest.mark.parametrize("model_class", [A2C, PPO2, SAC])
+@pytest.mark.parametrize("model_class", [A2C, PPO2, DDPG, SAC])
 def test_callbacks(model_class):
     # Create RL model
     model = model_class('MlpPolicy', 'Pendulum-v0')

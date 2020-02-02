@@ -393,7 +393,6 @@ class SAC(OffPolicyRLModel):
             infos_values = []
 
             callback.on_training_start(locals(), globals())
-
             callback.on_rollout_start()
 
             for step in range(total_timesteps):
@@ -442,7 +441,7 @@ class SAC(OffPolicyRLModel):
 
                 if step % self.train_freq == 0:
                     callback.on_rollout_end()
-                    
+
                     mb_infos_vals = []
                     # Update policy, critics and target networks
                     for grad_step in range(self.gradient_steps):
