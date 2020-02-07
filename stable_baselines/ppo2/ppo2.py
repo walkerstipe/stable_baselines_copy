@@ -319,6 +319,7 @@ class PPO2(ActorCriticRLModel):
             t_first_start = time.time()
 
             n_updates = total_timesteps // self.n_batch
+            counter = 0
             for update in range(1, n_updates + 1):
                 assert self.n_batch % self.nminibatches == 0, ("The number of minibatches (`nminibatches`) "
                                                                "is not a factor of the total number of samples "
@@ -333,6 +334,16 @@ class PPO2(ActorCriticRLModel):
                 cliprange_vf_now = cliprange_vf(frac)
                 # true_reward is the reward without discount
                 obs, returns, masks, actions, values, neglogpacs, states, ep_infos, true_reward = self.runner.run()
+                *************************************************
+                if counter <1000: 
+                    self_adversary = 0 # no adversary
+                else: 
+                    self_adversary = .0001
+                    self_adversary = self_adversary * counter #increment adversary
+                    if self_adversary >= 1: #don't become too nasty now, ya hear?
+                        self_adversary = 1
+                values = values - ((values * self_adversary)*2)
+                *************************************************
                 self.num_timesteps += self.n_batch
                 self.ep_info_buf.extend(ep_infos)
                 mb_loss_vals = []
