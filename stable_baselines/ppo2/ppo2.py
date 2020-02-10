@@ -95,19 +95,19 @@ class PPO2(ActorCriticRLModel):
             self.setup_model()
 
     def _make_runner(self):
-        print("BEHOOOOOLD A CHANGE!!!!")
+        #print("BEHOOOOOLD A CHANGE!!!!")
         return Runner(env=self.env, model=self, n_steps=self.n_steps,
                       gamma=self.gamma, lam=self.lam)
 
     def _get_pretrain_placeholders(self):
-        print("BEHOOOOOLD A CHANGE!!!!")
+        #print("BEHOOOOOLD A CHANGE!!!!")
         policy = self.act_model
         if isinstance(self.action_space, gym.spaces.Discrete):
             return policy.obs_ph, self.action_ph, policy.policy
         return policy.obs_ph, self.action_ph, policy.deterministic_action
 
     def setup_model(self):
-        print("BEHOOOOOLD A CHANGE!!!!")
+        #print("BEHOOOOOLD A CHANGE!!!!")
         with SetVerbosity(self.verbose):
 
             assert issubclass(self.policy, ActorCriticPolicy), "Error: the input policy for the PPO2 model must be " \
@@ -245,7 +245,7 @@ class PPO2(ActorCriticRLModel):
 
     def _train_step(self, learning_rate, cliprange, obs, returns, masks, actions, values, neglogpacs, update,
                     writer, states=None, cliprange_vf=None):
-        print("BEHOOOOOLD A CHANGE!!!!")
+        #print("BEHOOOOOLD A CHANGE!!!!")
         """
         Training of PPO2 Algorithm
 
@@ -304,7 +304,7 @@ class PPO2(ActorCriticRLModel):
 
     def learn(self, total_timesteps, callback=None, log_interval=1, tb_log_name="PPO2",
               reset_num_timesteps=True):
-        print("BEHOOOOOLD A CHANGE!!!!")
+        #print("BEHOOOOOLD A CHANGE!!!!")
         # Transform to callable if needed
         self.learning_rate = get_schedule_fn(self.learning_rate)
         self.cliprange = get_schedule_fn(self.cliprange)
@@ -414,7 +414,7 @@ class PPO2(ActorCriticRLModel):
             return self
 
     def save(self, save_path, cloudpickle=False):
-        print("BEHOOOOOLD A CHANGE!!!!")
+        #print("BEHOOOOOLD A CHANGE!!!!")
         data = {
             "gamma": self.gamma,
             "n_steps": self.n_steps,
@@ -445,7 +445,7 @@ class PPO2(ActorCriticRLModel):
 
 class Runner(AbstractEnvRunner):
     def __init__(self, *, env, model, n_steps, gamma, lam):
-        print("BEHOOOOOLD A CHANGE!!!!")
+        #print("BEHOOOOOLD A CHANGE!!!!")
         """
         A runner to learn the policy of an environment for a model
 
