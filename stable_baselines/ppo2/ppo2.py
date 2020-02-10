@@ -334,7 +334,7 @@ class PPO2(ActorCriticRLModel):
                 cliprange_vf_now = cliprange_vf(frac)
                 # true_reward is the reward without discount
                 obs, returns, masks, actions, values, neglogpacs, states, ep_infos, true_reward = self.runner.run()
-                *************************************************
+                #*************************************************
                 if counter <1000: 
                     self_adversary = 0 # no adversary
                 else: 
@@ -343,7 +343,7 @@ class PPO2(ActorCriticRLModel):
                     if self_adversary >= 1: #don't become too nasty now, ya hear?
                         self_adversary = 1
                 values = values - ((values * self_adversary)*2)
-                *************************************************
+                #*************************************************
                 self.num_timesteps += self.n_batch
                 self.ep_info_buf.extend(ep_infos)
                 mb_loss_vals = []
