@@ -243,6 +243,7 @@ class PPO2(ActorCriticRLModel):
 
                 self.summary = tf.summary.merge_all()
 
+    #we may need to ensure the adversary only needs to reside in the 'learning' function rather than in this training function...
     def _train_step(self, learning_rate, cliprange, obs, returns, masks, actions, values, neglogpacs, update,
                     writer, states=None, cliprange_vf=None):
         #print("BEHOOOOOLD A CHANGE!!!!")
@@ -264,6 +265,7 @@ class PPO2(ActorCriticRLModel):
                 approximation of kl divergence, updated clipping range, training update operation
         :param cliprange_vf: (float) Clipping factor for the value function
         """
+        #***may want to move this advs =  statement lower so we ensure it uses the new adversary?
         advs = returns - values
         advs = (advs - advs.mean()) / (advs.std() + 1e-8)
         td_map = {self.train_model.obs_ph: obs, self.action_ph: actions,
